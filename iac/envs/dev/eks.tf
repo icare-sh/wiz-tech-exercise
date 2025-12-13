@@ -15,6 +15,7 @@ locals {
   }
 }
 
+#checkov:skip=CKV_TF_1: "Module pinned via Terraform Registry version (accepted risk)"
 module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
   version = "6.5.1"
@@ -46,6 +47,7 @@ module "vpc" {
   tags = local.tags
 }
 
+#checkov:skip=CKV_TF_1: "Module pinned via Terraform Registry version (accepted risk)"
 module "eks" {
   source  = "terraform-aws-modules/eks/aws"
   version = "21.8.0"
