@@ -47,3 +47,4 @@ output "kubectl_update_kubeconfig_command" {
   description = "Helper command to configure kubectl for this cluster."
   value       = "aws eks update-kubeconfig --region ${local.region} --name ${module.eks.cluster_name}"
 }
+

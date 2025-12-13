@@ -51,23 +51,6 @@ module "eks" {
   # Allow the creator of the cluster (Terraform user) to be admin
   enable_cluster_creator_admin_permissions = true
 
-  access_entries = {
-    # Example to add an extra admin user if needed explicitly
-    # viewer = {
-    #   kubernetes_groups = []
-    #   principal_arn     = "arn:aws:iam::123456789012:role/something"
-    #   policy_associations = {
-    #     example = {
-    #       policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSViewPolicy"
-    #       access_scope = {
-    #         namespaces = ["default"]
-    #         type       = "namespace"
-    #       }
-    #     }
-    #   }
-    # }
-  }
-
   addons = {
     coredns = {
       most_recent = true
@@ -102,6 +85,12 @@ module "eks" {
       disk_size  = 20
       subnet_ids = module.vpc.private_subnets
 
+      metadata_options = {
+        http_endpoint               = "enabled"
+        http_tokens                 = "required"
+        http_put_response_hop_limit = 2
+      }
+
       tags = merge(local.tags, {
         ExtraTag = "Eks Cluster devsecops"
       })
@@ -109,4 +98,80 @@ module "eks" {
   }
 
   tags = local.tags
+}
+
+# --- AWS Load Balancer Controller IAM Setup ---
+
+data "aws_iam_policy_document" "lb_controller_assume" {
+  statement {
+    actions = ["sts:AssumeRoleWithWebIdentity"]
+    effect  = "Allow"
+
+    principals {
+      type        = "Federated"
+      identifiers = [module.eks.oidc_provider_arn]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "${replace(module.eks.oidc_provider_arn, "/^(.*provider/)/", "")}:sub"
+      values   = ["system:serviceaccount:kube-system:aws-load-balancer-controller"]
+    }
+  }
+}
+
+resource "aws_iam_role" "lb_controller" {
+  name               = "${local.name}-lb-controller"
+  assume_role_policy = data.aws_iam_policy_document.lb_controller_assume.json
+  tags               = local.tags
+}
+
+# Download official IAM policy for AWS Load Balancer Controller
+data "http" "lb_controller_policy" {
+  url = "https://raw.githubusercontent.com/kubernetes-sigs/aws-load-balancer-controller/main/docs/install/iam_policy.json"
+}
+
+resource "aws_iam_policy" "lb_controller" {
+  name        = "${local.name}-lb-controller"
+  path        = "/"
+  description = "AWS Load Balancer Controller IAM Policy"
+  policy      = data.http.lb_controller_policy.response_body
+  tags        = local.tags
+}
+
+resource "aws_iam_role_policy_attachment" "lb_controller" {
+  role       = aws_iam_role.lb_controller.name
+  policy_arn = aws_iam_policy.lb_controller.arn
+}
+
+resource "helm_release" "aws_load_balancer_controller" {
+  name       = "aws-load-balancer-controller"
+  repository = "https://aws.github.io/eks-charts"
+  chart      = "aws-load-balancer-controller"
+  namespace  = "kube-system"
+
+  set {
+    name  = "clusterName"
+    value = module.eks.cluster_name
+  }
+
+  set {
+    name  = "serviceAccount.create"
+    value = "true"
+  }
+
+  set {
+    name  = "serviceAccount.name"
+    value = "aws-load-balancer-controller"
+  }
+
+  set {
+    name  = "serviceAccount.annotations.eks\\.amazonaws\\.com/role-arn"
+    value = aws_iam_role.lb_controller.arn
+  }
+
+  depends_on = [
+    module.eks,
+    aws_iam_role_policy_attachment.lb_controller
+  ]
 }
