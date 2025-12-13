@@ -4,10 +4,17 @@ TF_PLAN ?= tfplan
 APP_DIR ?= app
 IMAGE_NAME ?= wiz-tech-exercise
 IMAGE_TAG ?= latest
+ANSIBLE_DIR ?= iac/envs/dev/ansible
+HELM_CHART ?= iac/kubernetes/app
+AWS_REGION ?= us-east-1
+AWS_ACCOUNT_ID ?= 180294187104
 
-.PHONY: eks-fmt eks-init eks-validate eks-plan eks-apply eks-destroy
-.PHONY: ec2-fmt ec2-init ec2-validate ec2-plan ec2-apply ec2-destroy
-.PHONY: app-build app-run app-scan
+.PHONY: eks-fmt eks-init eks-validate eks-plan eks-apply eks-destroy eks-outputs
+.PHONY: ec2-fmt ec2-init ec2-validate ec2-plan ec2-apply ec2-destroy ec2-outputs
+.PHONY: app-build app-run app-scan app-push
+.PHONY: ansible-setup ansible-run
+.PHONY: helm-setup helm-deploy helm-status
+.PHONY: deploy-all clean-all
 
 eks-fmt:
 	terraform -chdir=$(TF_DIR_EKS) fmt -recursive
@@ -23,6 +30,9 @@ eks-plan: eks-validate
 
 eks-apply: eks-plan
 	terraform -chdir=$(TF_DIR_EKS) apply $(TF_PLAN)
+
+eks-outputs:
+	@terraform -chdir=$(TF_DIR_EKS) output -json
 
 eks-destroy: eks-init
 	terraform -chdir=$(TF_DIR_EKS) destroy
@@ -42,10 +52,11 @@ ec2-plan: ec2-validate
 ec2-apply: ec2-plan
 	terraform -chdir=$(TF_DIR_EC2) apply $(TF_PLAN)
 
-ec2-destroy: ec2-init
-	terraform -chdir=$(TF_DIR_EC2) destroy
+ec2-outputs:
+	@terraform -chdir=$(TF_DIR_EC2) output -json
 
-# --- Milestone 4 : App ---
+ec2-destroy: eks-init
+	terraform -chdir=$(TF_DIR_EC2) destroy
 
 app-build:
 	docker build -t $(IMAGE_NAME):$(IMAGE_TAG) $(APP_DIR)
@@ -56,5 +67,80 @@ app-run:
 
 app-scan:
 	@echo "Scanning image with Trivy..."
-	# Assumes trivy is installed or run via docker if needed
 	trivy image --exit-code 0 --severity HIGH,CRITICAL $(IMAGE_NAME):$(IMAGE_TAG)
+
+app-push:
+	@echo "Tagging and pushing to ECR..."
+	@ECR_URL=$$(terraform -chdir=$(TF_DIR_EC2) output -raw ecr_repository_url); \
+	aws ecr get-login-password --region $(AWS_REGION) | docker login --username AWS --password-stdin $(AWS_ACCOUNT_ID).dkr.ecr.$(AWS_REGION).amazonaws.com; \
+	docker tag $(IMAGE_NAME):$(IMAGE_TAG) $$ECR_URL:$(IMAGE_TAG); \
+	docker push $$ECR_URL:$(IMAGE_TAG)
+
+ansible-setup:
+	@echo "Updating Ansible inventory with Terraform outputs..."
+	@MONGO_IP=$$(terraform -chdir=$(TF_DIR_EC2) output -raw mongo_public_ip); \
+	BUCKET=$$(terraform -chdir=$(TF_DIR_EC2) output -raw backup_bucket_name); \
+	sed -i "s/^mongo_host ansible_host=.*/mongo_host ansible_host=$$MONGO_IP ansible_user=ubuntu ansible_ssh_private_key_file=~\/.ssh\/id_ed25519/" $(ANSIBLE_DIR)/inventory; \
+	sed -i "s/^s3_bucket_name: .*/s3_bucket_name: $$BUCKET/" $(ANSIBLE_DIR)/group_vars/mongo/vars.yml
+
+ansible-run:
+	@echo "Running Ansible playbook..."
+	ansible-playbook -i $(ANSIBLE_DIR)/inventory $(ANSIBLE_DIR)/mongo.yml --ask-vault-pass
+
+helm-setup:
+	@echo "Adding Helm repos..."
+	helm repo add eks https://aws.github.io/eks-charts
+	helm repo update
+	@echo "Updating kubeconfig..."
+	aws eks update-kubeconfig --region $(AWS_REGION) --name wiz_cluster_eks
+
+helm-deploy:
+	@echo "Deploying AWS Load Balancer Controller..."
+	@LB_ROLE_ARN=$$(terraform -chdir=$(TF_DIR_EKS) output -raw lb_controller_role_arn); \
+	helm upgrade --install aws-load-balancer-controller eks/aws-load-balancer-controller \
+	  -n kube-system \
+	  --set clusterName=wiz_cluster_eks \
+	  --set serviceAccount.create=true \
+	  --set serviceAccount.name=aws-load-balancer-controller \
+	  --set serviceAccount.annotations."eks\.amazonaws\.com/role-arn"=$$LB_ROLE_ARN
+	@echo "Waiting for ALB Controller to be ready..."
+	@kubectl wait --for=condition=available --timeout=300s deployment/aws-load-balancer-controller -n kube-system || true
+	@echo "Deploying application..."
+	@MONGO_IP=$$(terraform -chdir=$(TF_DIR_EC2) output -raw mongo_private_ip); \
+	helm upgrade --install wiz-app $(HELM_CHART) \
+	  --set mongodb.uri="mongodb://admin:SuperSecretPassword123!@$$MONGO_IP:27017"
+
+helm-status:
+	@echo "=== Pods ==="
+	@kubectl get pods
+	@echo "\n=== Services ==="
+	@kubectl get svc
+	@echo "\n=== Ingress ==="
+	@kubectl get ingress
+	@echo "\n=== ALB URL ==="
+	@kubectl get ingress -o jsonpath='{.items[0].status.loadBalancer.ingress[0].hostname}'
+	@echo ""
+
+deploy-all:
+	@echo "Starting full deployment..."
+	@echo "\n[1/6] Deploying EKS cluster..."
+	@make eks-apply
+	@echo "\n[2/6] Deploying EC2 MongoDB instance..."
+	@make ec2-apply
+	@echo "\n[3/6] Configuring Ansible inventory..."
+	@make ansible-setup
+	@echo "\n[4/6] Installing MongoDB with Ansible..."
+	@make ansible-run
+	@echo "\n[5/6] Building and pushing Docker image..."
+	@make app-build app-push
+	@echo "\n[6/6] Setting up Helm and deploying application..."
+	@make helm-setup helm-deploy
+	@echo "\n=== Deployment Complete ==="
+	@make helm-status
+
+clean-all:
+	@echo "Destroying all infrastructure..."
+	@make ec2-destroy
+	@make eks-destroy
+	@echo "Cleanup complete"
+
