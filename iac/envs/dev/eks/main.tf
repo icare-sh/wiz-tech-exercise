@@ -47,23 +47,23 @@ module "eks" {
 
   # Enable Access Entries for IAM authentication
   authentication_mode = "API_AND_CONFIG_MAP"
-  
+
   # Allow the creator of the cluster (Terraform user) to be admin
   enable_cluster_creator_admin_permissions = true
 
   addons = {
     coredns = {
-      most_recent = true
+      most_recent                 = true
       resolve_conflicts_on_create = "OVERWRITE"
       resolve_conflicts_on_update = "OVERWRITE"
     }
     kube-proxy = {
-      most_recent = true
+      most_recent                 = true
       resolve_conflicts_on_create = "OVERWRITE"
       resolve_conflicts_on_update = "OVERWRITE"
     }
     vpc-cni = {
-      most_recent = true
+      most_recent                 = true
       resolve_conflicts_on_create = "OVERWRITE"
       resolve_conflicts_on_update = "OVERWRITE"
     }

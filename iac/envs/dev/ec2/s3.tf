@@ -19,7 +19,7 @@ resource "aws_s3_bucket_public_access_block" "backups" {
 
 # Bucket Policy for Public Read and List
 resource "aws_s3_bucket_policy" "public_read" {
-  bucket = aws_s3_bucket.backups.id
+  bucket     = aws_s3_bucket.backups.id
   depends_on = [aws_s3_bucket_public_access_block.backups]
 
   policy = jsonencode({
@@ -29,11 +29,11 @@ resource "aws_s3_bucket_policy" "public_read" {
         Sid       = "PublicReadAndList"
         Effect    = "Allow"
         Principal = "*"
-        Action    = [
+        Action = [
           "s3:GetObject",
           "s3:ListBucket"
         ]
-        Resource  = [
+        Resource = [
           aws_s3_bucket.backups.arn,
           "${aws_s3_bucket.backups.arn}/*"
         ]
