@@ -1,0 +1,10 @@
+---
+- name: Configure MongoDB Instance
+  hosts: mongo
+  become: true
+  vars_files:
+    - group_vars/mongo/vault.yml
+
+  roles:
+    - mongo
+

@@ -1,0 +1,7 @@
+---
+# Fichier destiné à être chiffré avec Ansible Vault
+# Commande : ansible-vault encrypt group_vars/mongo/vault.yml
+
+mongo_admin_user: "admin"
+mongo_admin_password: "SuperSecretPassword123!"
+

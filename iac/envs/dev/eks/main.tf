@@ -1,20 +1,3 @@
-locals {
-  name   = "wiz_cluster_eks"
-  region = "us-east-1"
-
-  vpc_cidr = "10.123.0.0/16"
-  azs      = ["us-east-1a", "us-east-1b"]
-
-  public_subnets  = ["10.123.1.0/24", "10.123.2.0/24"]
-  private_subnets = ["10.123.3.0/24", "10.123.4.0/24"]
-  intra_subnets   = ["10.123.5.0/24", "10.123.6.0/24"]
-
-  tags = {
-    Example   = local.name
-    ManagedBy = "Terraform"
-  }
-}
-
 module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
   version = "6.5.1"
@@ -35,17 +18,16 @@ module "vpc" {
 
   public_subnet_tags = {
     "kubernetes.io/role/elb"              = 1
-    "kubernetes.io/cluster/${local.name}" = "shared"
+    "kubernetes.io/cluster/${local.name}" = "owned"
   }
 
   private_subnet_tags = {
     "kubernetes.io/role/internal-elb"     = 1
-    "kubernetes.io/cluster/${local.name}" = "shared"
+    "kubernetes.io/cluster/${local.name}" = "owned"
   }
 
   tags = local.tags
 }
-
 
 module "eks" {
   source  = "terraform-aws-modules/eks/aws"
@@ -63,10 +45,45 @@ module "eks" {
 
   enable_irsa = true
 
-  cluster_addons = {
-    coredns    = { most_recent = true }
-    kube-proxy = { most_recent = true }
-    vpc-cni    = { most_recent = true }
+  # Enable Access Entries for IAM authentication
+  authentication_mode = "API_AND_CONFIG_MAP"
+  
+  # Allow the creator of the cluster (Terraform user) to be admin
+  enable_cluster_creator_admin_permissions = true
+
+  access_entries = {
+    # Example to add an extra admin user if needed explicitly
+    # viewer = {
+    #   kubernetes_groups = []
+    #   principal_arn     = "arn:aws:iam::123456789012:role/something"
+    #   policy_associations = {
+    #     example = {
+    #       policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSViewPolicy"
+    #       access_scope = {
+    #         namespaces = ["default"]
+    #         type       = "namespace"
+    #       }
+    #     }
+    #   }
+    # }
+  }
+
+  addons = {
+    coredns = {
+      most_recent = true
+      resolve_conflicts_on_create = "OVERWRITE"
+      resolve_conflicts_on_update = "OVERWRITE"
+    }
+    kube-proxy = {
+      most_recent = true
+      resolve_conflicts_on_create = "OVERWRITE"
+      resolve_conflicts_on_update = "OVERWRITE"
+    }
+    vpc-cni = {
+      most_recent = true
+      resolve_conflicts_on_create = "OVERWRITE"
+      resolve_conflicts_on_update = "OVERWRITE"
+    }
   }
 
   eks_managed_node_groups = {

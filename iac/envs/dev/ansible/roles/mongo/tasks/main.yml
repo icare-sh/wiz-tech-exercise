@@ -1,0 +1,53 @@
+---
+- name: Import MongoDB public GPG key
+  apt_key:
+    url: https://pgp.mongodb.com/server-4.4.asc
+    state: present
+
+- name: Add MongoDB repository
+  apt_repository:
+    repo: "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu bionic/mongodb-org/4.4 multiverse"
+    state: present
+    filename: mongodb-org-4.4
+
+- name: Install MongoDB
+  apt:
+    name: mongodb-org
+    state: present
+    update_cache: yes
+
+- name: Ensure MongoDB is started and enabled
+  service:
+    name: mongod
+    state: started
+    enabled: yes
+
+- name: Wait for MongoDB to be ready
+  wait_for:
+    port: 27017
+    delay: 2
+
+- name: Create MongoDB admin user
+  shell: |
+    mongo admin --eval 'db.createUser({user: "{{ mongo_admin_user }}", pwd: "{{ mongo_admin_password }}", roles: [{role: "root", db: "admin"}]})'
+  register: create_user
+  changed_when: "'Successfully added user' in create_user.stdout"
+  failed_when: 
+    - create_user.rc != 0
+    - "'already exists' not in create_user.stdout"
+
+- name: Configure MongoDB (bindIp and auth)
+  template:
+    src: mongod.conf.j2
+    dest: /etc/mongod.conf
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Restart MongoDB
+
+handlers:
+  - name: Restart MongoDB
+    service:
+      name: mongod
+      state: restarted
+
