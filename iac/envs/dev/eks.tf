@@ -62,7 +62,7 @@ module "eks" {
 
   enable_irsa = true
 
-  addons = {
+  cluster_addons = {
     coredns   = { most_recent = true }
     kube-proxy = { most_recent = true }
     vpc-cni   = { most_recent = true }
