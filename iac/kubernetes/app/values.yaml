@@ -10,12 +10,13 @@ service:
 
 ingress:
   enabled: true
-  className: "nginx" # Changed from alb to nginx
+  className: "alb"
   annotations:
-    # scheme: internet-facing # Not needed for Nginx, it's handled by the controller service
-    # target-type: ip
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'
   hosts:
-    - host: # Leave empty to accept all hosts or set a specific domain
+    - host: ""
       paths:
         - path: /
           pathType: Prefix
