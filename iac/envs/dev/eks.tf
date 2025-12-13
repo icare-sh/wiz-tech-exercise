@@ -10,7 +10,7 @@ locals {
   intra_subnets   = ["10.123.5.0/24", "10.123.6.0/24"]
 
   tags = {
-    Example = local.name
+    Example   = local.name
     ManagedBy = "Terraform"
   }
 }
@@ -34,12 +34,12 @@ module "vpc" {
   enable_dns_support   = true
 
   public_subnet_tags = {
-    "kubernetes.io/role/elb" = 1
+    "kubernetes.io/role/elb"              = 1
     "kubernetes.io/cluster/${local.name}" = "shared"
   }
 
   private_subnet_tags = {
-    "kubernetes.io/role/internal-elb" = 1
+    "kubernetes.io/role/internal-elb"     = 1
     "kubernetes.io/cluster/${local.name}" = "shared"
   }
 
@@ -63,16 +63,16 @@ module "eks" {
   enable_irsa = true
 
   cluster_addons = {
-    coredns   = { most_recent = true }
+    coredns    = { most_recent = true }
     kube-proxy = { most_recent = true }
-    vpc-cni   = { most_recent = true }
+    vpc-cni    = { most_recent = true }
   }
 
   eks_managed_node_groups = {
     default = {
-      name           = "${local.name}-mng"
+      name = "${local.name}-mng"
 
-      ami_type       = "AL2023_x86_64_STANDARD" 
+      ami_type = "AL2023_x86_64_STANDARD"
 
       instance_types = ["t3.medium"]
       capacity_type  = "ON_DEMAND"
@@ -81,7 +81,7 @@ module "eks" {
       min_size     = 1
       max_size     = 2
 
-      disk_size = 20
+      disk_size  = 20
       subnet_ids = module.vpc.private_subnets
 
       tags = merge(local.tags, {
