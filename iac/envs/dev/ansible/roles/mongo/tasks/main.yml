@@ -29,14 +29,16 @@
     port: 27017
     delay: 2
 
-- name: Create MongoDB admin user
+- name: Create MongoDB admin user (idempotent)
   shell: |
-    mongo admin --eval 'db.createUser({user: "{{ mongo_admin_user }}", pwd: "{{ mongo_admin_password }}", roles: [{role: "root", db: "admin"}]})'
+    mongo admin --eval 'db.createUser({user: "{{ mongo_admin_user }}", pwd: "{{ mongo_admin_password }}", roles: [{role: "root", db: "admin"}]})' || \
+    mongo admin -u "{{ mongo_admin_user }}" -p "{{ mongo_admin_password }}" --eval 'db.getUser("{{ mongo_admin_user }}")'
   register: create_user
   changed_when: "'Successfully added user' in create_user.stdout"
   failed_when: 
     - create_user.rc != 0
     - "'already exists' not in create_user.stdout"
+    - "'command createUser requires authentication' not in create_user.stdout"
 
 - name: Configure MongoDB (bindIp and auth)
   template:
@@ -46,5 +48,20 @@
     group: root
     mode: '0644'
   notify: Restart MongoDB
+
+- name: Install Backup Script
+  template:
+    src: backup_mongo.sh.j2
+    dest: /usr/local/bin/backup_mongo.sh
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Schedule Daily Backup
+  cron:
+    name: "Daily MongoDB Backup"
+    minute: "0"
+    hour: "2"
+    job: "/usr/local/bin/backup_mongo.sh >> /var/log/mongo_backup.log 2>&1"
 
 

@@ -15,3 +15,8 @@ output "mongo_ssh_user" {
 output "mongo_sg_id" {
   value = aws_security_group.mongo.id
 }
+
+output "backup_bucket_name" {
+  description = "Name of the S3 bucket for Mongo backups"
+  value       = aws_s3_bucket.backups.id
+}
