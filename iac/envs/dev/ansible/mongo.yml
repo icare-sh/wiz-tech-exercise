@@ -2,8 +2,28 @@
 - name: Configure MongoDB Instance
   hosts: mongo
   become: true
+  gather_facts: false # Désactiver pour éviter l'échec immédiat sur Python 3.8
+  
   vars_files:
     - group_vars/mongo/vault.yml
+
+  pre_tasks:
+    - name: Install Python 3.9 manually (required for modern Ansible)
+      raw: |
+        export DEBIAN_FRONTEND=noninteractive
+        apt-get update
+        apt-get install -y software-properties-common
+        add-apt-repository -y ppa:deadsnakes/ppa
+        apt-get update
+        apt-get install -y python3.9 python3.9-distutils
+      changed_when: false
+
+    - name: Set Ansible python interpreter to Python 3.9
+      set_fact:
+        ansible_python_interpreter: /usr/bin/python3.9
+
+    - name: Gather Facts (now with Python 3.9)
+      setup:
 
   roles:
     - mongo
