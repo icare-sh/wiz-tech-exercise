@@ -72,3 +72,4 @@ resource "aws_dynamodb_table" "terraform_locks" {
 }
 
 data "aws_caller_identity" "current" {}
+

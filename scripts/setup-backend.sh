@@ -79,3 +79,4 @@ echo ""
 echo "All Terraform modules now use remote state storage."
 echo "GitHub Actions CI/CD will automatically use this backend."
 echo ""
+
