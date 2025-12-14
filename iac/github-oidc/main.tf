@@ -192,3 +192,4 @@ resource "aws_secretsmanager_secret_version" "ansible_vault_password" {
   secret_id     = aws_secretsmanager_secret.ansible_vault_password.id
   secret_string = random_password.ansible_vault.result
 }
+

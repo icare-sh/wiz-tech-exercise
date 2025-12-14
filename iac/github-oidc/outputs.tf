@@ -29,3 +29,4 @@ output "ansible_vault_password" {
   value       = random_password.ansible_vault.result
   sensitive   = true
 }
+
