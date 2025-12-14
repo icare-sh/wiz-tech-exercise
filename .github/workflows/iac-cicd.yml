@@ -11,6 +11,7 @@ on:
     paths:
       - "iac/envs/dev/**"
       - ".github/workflows/iac-cicd.yml"
+  workflow_dispatch:
 
 permissions:
   id-token: write
