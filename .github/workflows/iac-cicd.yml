@@ -149,6 +149,16 @@ jobs:
         working-directory: iac/envs/dev/eks
         run: terraform apply -auto-approve
 
+      - name: Verify State is Not Empty
+        working-directory: iac/envs/dev/eks
+        run: |
+          STATE_RESOURCES=$(terraform show -json | jq '.values.root_module.resources | length')
+          if [ "$STATE_RESOURCES" -eq "0" ]; then
+            echo "ERROR: State is empty after apply! This should never happen."
+            exit 1
+          fi
+          echo "State contains $STATE_RESOURCES resources ✅"
+
   ec2-apply:
     name: EC2 - Terraform Apply
     runs-on: ubuntu-latest

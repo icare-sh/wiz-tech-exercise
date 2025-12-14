@@ -97,6 +97,20 @@ module "eks" {
     }
   }
 
+  access_entries = {
+    local_admin = {
+      principal_arn = "arn:aws:iam::180294187104:user/odl_user_2001862"
+      policy_associations = {
+        admin = {
+          policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+          access_scope = {
+            type = "cluster"
+          }
+        }
+      }
+    }
+  }
+
   tags = local.tags
 }
 
