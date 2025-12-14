@@ -15,7 +15,7 @@ AWS_ACCOUNT_ID ?= 180294187104
 .PHONY: app-build app-run app-scan app-push
 .PHONY: ansible-setup ansible-run ansible-create-vault-pass
 .PHONY: helm-setup helm-deploy helm-status
-.PHONY: deploy-all clean-all setup-cicd
+.PHONY: deploy-all clean-all setup-cicd setup-backend
 
 eks-fmt:
 	terraform -chdir=$(TF_DIR_EKS) fmt -recursive
@@ -155,6 +155,14 @@ clean-all:
 	@make ec2-destroy
 	@make eks-destroy
 	@echo "Cleanup complete"
+
+setup-backend:
+	@echo "Setting up Terraform remote backend (S3 + DynamoDB)..."
+	@cd iac/terraform-backend && terraform init && terraform apply
+	@echo "\n✅ Backend created. Now configure backend.tf in each module:"
+	@echo "\nBucket: $$(cd iac/terraform-backend && terraform output -raw s3_bucket_name)"
+	@echo "DynamoDB Table: $$(cd iac/terraform-backend && terraform output -raw dynamodb_table_name)"
+	@echo "\nSee iac/terraform-backend/README.md for migration steps"
 
 setup-cicd:
 	@echo "Setting up CI/CD infrastructure..."

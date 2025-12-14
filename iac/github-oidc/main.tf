@@ -22,7 +22,7 @@ provider "aws" {
 }
 
 locals {
-  github_org  = "votre-org-github"
+  github_org  = "icare-sh"
   github_repo = "wiz-tech-exercise"
 }
 
@@ -79,6 +79,32 @@ resource "aws_iam_policy" "github_actions" {
     Version = "2012-10-17"
     Statement = [
       {
+        Sid    = "TerraformStateAccess"
+        Effect = "Allow"
+        Action = [
+          "s3:GetObject",
+          "s3:PutObject",
+          "s3:DeleteObject",
+          "s3:ListBucket"
+        ]
+        Resource = [
+          "arn:aws:s3:::wiz-tech-exercise-terraform-state-*",
+          "arn:aws:s3:::wiz-tech-exercise-terraform-state-*/*"
+        ]
+      },
+      {
+        Sid    = "TerraformStateLocking"
+        Effect = "Allow"
+        Action = [
+          "dynamodb:GetItem",
+          "dynamodb:PutItem",
+          "dynamodb:DeleteItem",
+          "dynamodb:DescribeTable"
+        ]
+        Resource = "arn:aws:dynamodb:*:*:table/wiz-tech-exercise-terraform-locks"
+      },
+      {
+        Sid    = "InfrastructureManagement"
         Effect = "Allow"
         Action = [
           "ec2:*",
@@ -90,7 +116,10 @@ resource "aws_iam_policy" "github_actions" {
           "secretsmanager:DescribeSecret",
           "kms:Decrypt",
           "kms:DescribeKey",
-          "sts:GetCallerIdentity"
+          "sts:GetCallerIdentity",
+          "elasticloadbalancing:*",
+          "autoscaling:*",
+          "logs:*"
         ]
         Resource = "*"
       }
