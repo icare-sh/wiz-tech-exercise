@@ -3,10 +3,12 @@
  * Allows this module to deploy the EC2 instance into the existing network infrastructure.
  */
 data "terraform_remote_state" "eks" {
-  backend = "local"
+  backend = "s3"
 
   config = {
-    path = "../eks/terraform.tfstate"
+    bucket = "wiz-tech-exercise-terraform-state-180294187104"
+    key    = "dev/eks/terraform.tfstate"
+    region = "us-east-1"
   }
 }
 
