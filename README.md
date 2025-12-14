@@ -184,7 +184,7 @@ cd ../envs/dev/ansible
 ansible-vault rekey group_vars/mongo/vault.yml --vault-password-file ~/.ansible_vault_pass
 ```
 
-#### 4b. Update EC2 Terraform Config
+#### 4b. Update EC2 Terraform Configs
 
 ```bash
 cd ../../github-oidc
