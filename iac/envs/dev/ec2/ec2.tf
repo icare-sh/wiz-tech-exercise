@@ -115,8 +115,8 @@ resource "aws_key_pair" "mongo" {
 }
 
 resource "aws_instance" "mongo" {
-  ami                         = data.aws_ami.ubuntu_2004.id
-  instance_type               = var.mongo_instance_type
+  ami           = data.aws_ami.ubuntu_2004.id
+  instance_type = var.mongo_instance_type
   #subnet_id                   = data.terraform_remote_state.eks.outputs.public_subnet_ids[0]
   vpc_security_group_ids      = [aws_security_group.mongo.id]
   key_name                    = aws_key_pair.mongo.key_name
