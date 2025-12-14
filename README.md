@@ -370,6 +370,37 @@ cd iac/envs/dev/eks
 AWS_PROFILE=wiz terraform force-unlock <LOCK_ID>
 ```
 
+### Terraform State Issues
+
+**Verify state is in S3**:
+```bash
+# Check all states
+AWS_PROFILE=wiz make verify-states
+
+# Manually verify
+AWS_PROFILE=wiz aws s3 ls s3://wiz-tech-exercise-terraform-state-180294187104/ --recursive
+
+# Pull latest state
+cd iac/envs/dev/eks && terraform init -reconfigure
+cd iac/envs/dev/ec2 && terraform init -reconfigure
+```
+
+**Check state contents**:
+```bash
+# List resources in state
+terraform -chdir=iac/envs/dev/eks state list
+terraform -chdir=iac/envs/dev/ec2 state list
+
+# View specific resource
+terraform -chdir=iac/envs/dev/eks state show module.eks.aws_eks_cluster.this[0]
+```
+
+**Important State Management Rules**:
+- ✅ Always use `-reconfigure` with `terraform init` to pull latest S3 state
+- ✅ CI/CD automatically verifies state after apply
+- ❌ Never commit local `terraform.tfstate` files
+- ❌ Never manually edit S3 state files
+
 ### GitHub Actions: "Unable to assume role"
 
 1. Verify secret `AWS_GITHUB_ACTIONS_ROLE_ARN` exists in GitHub

@@ -15,13 +15,13 @@ AWS_ACCOUNT_ID ?= 180294187104
 .PHONY: app-build app-run app-scan app-push
 .PHONY: ansible-setup ansible-run ansible-create-vault-pass
 .PHONY: helm-setup helm-deploy helm-status
-.PHONY: deploy-all clean-all setup-cicd setup-backend
+.PHONY: deploy-all clean-all setup-cicd setup-backend verify-states
 
 eks-fmt:
 	terraform -chdir=$(TF_DIR_EKS) fmt -recursive
 
 eks-init:
-	terraform -chdir=$(TF_DIR_EKS) init
+	terraform -chdir=$(TF_DIR_EKS) init -reconfigure
 
 eks-validate: eks-init
 	terraform -chdir=$(TF_DIR_EKS) validate
@@ -31,6 +31,8 @@ eks-plan: eks-validate
 
 eks-apply: eks-plan
 	terraform -chdir=$(TF_DIR_EKS) apply $(TF_PLAN)
+	@echo "Verifying state was saved..."
+	@terraform -chdir=$(TF_DIR_EKS) state list || (echo "ERROR: State is empty!" && exit 1)
 
 eks-outputs:
 	@terraform -chdir=$(TF_DIR_EKS) output -json
@@ -42,7 +44,7 @@ ec2-fmt:
 	terraform -chdir=$(TF_DIR_EC2) fmt -recursive
 
 ec2-init:
-	terraform -chdir=$(TF_DIR_EC2) init
+	terraform -chdir=$(TF_DIR_EC2) init -reconfigure
 
 ec2-validate: ec2-init
 	terraform -chdir=$(TF_DIR_EC2) validate
@@ -52,11 +54,13 @@ ec2-plan: ec2-validate
 
 ec2-apply: ec2-plan
 	terraform -chdir=$(TF_DIR_EC2) apply $(TF_PLAN)
+	@echo "Verifying state was saved..."
+	@terraform -chdir=$(TF_DIR_EC2) state list || (echo "ERROR: State is empty!" && exit 1)
 
 ec2-outputs:
 	@terraform -chdir=$(TF_DIR_EC2) output -json
 
-ec2-destroy: eks-init
+ec2-destroy: ec2-init
 	terraform -chdir=$(TF_DIR_EC2) destroy
 
 app-build:
@@ -172,4 +176,8 @@ setup-cicd:
 	@cd iac/github-oidc && terraform output github_actions_role_arn
 	@echo "\n3. Add this ARN to GitHub Secrets as AWS_GITHUB_ACTIONS_ROLE_ARN"
 	@echo "\nCI/CD setup complete!"
+
+verify-states:
+	@echo "Verifying Terraform states in S3..."
+	@./scripts/verify-states.sh
 

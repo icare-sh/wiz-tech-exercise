@@ -143,7 +143,13 @@ jobs:
 
       - name: Terraform Init
         working-directory: iac/envs/dev/eks
-        run: terraform init
+        run: terraform init -reconfigure
+
+      - name: Verify Backend Configuration
+        working-directory: iac/envs/dev/eks
+        run: |
+          echo "Checking S3 backend connection..."
+          aws s3 ls s3://wiz-tech-exercise-terraform-state-180294187104/dev/eks/ || echo "State doesn't exist yet (first run)"
 
       - name: Terraform Apply
         working-directory: iac/envs/dev/eks
@@ -152,12 +158,26 @@ jobs:
       - name: Verify State is Not Empty
         working-directory: iac/envs/dev/eks
         run: |
-          STATE_RESOURCES=$(terraform show -json | jq '.values.root_module.resources | length')
-          if [ "$STATE_RESOURCES" -eq "0" ]; then
-            echo "ERROR: State is empty after apply! This should never happen."
+          echo "Verifying state was saved to S3..."
+          terraform state list > /tmp/state_list.txt
+          RESOURCE_COUNT=$(wc -l < /tmp/state_list.txt)
+          
+          if [ "$RESOURCE_COUNT" -eq "0" ]; then
+            echo "❌ ERROR: State is empty after apply!"
+            echo "This means resources were NOT saved to S3."
             exit 1
           fi
-          echo "State contains $STATE_RESOURCES resources ✅"
+          
+          echo "✅ State contains $RESOURCE_COUNT resources"
+          echo "Verifying S3 state file exists and is not empty..."
+          STATE_SIZE=$(aws s3 ls s3://wiz-tech-exercise-terraform-state-180294187104/dev/eks/terraform.tfstate --summarize | grep "Total Size" | awk '{print $3}')
+          
+          if [ -z "$STATE_SIZE" ] || [ "$STATE_SIZE" -lt "1000" ]; then
+            echo "❌ ERROR: S3 state file is empty or too small ($STATE_SIZE bytes)"
+            exit 1
+          fi
+          
+          echo "✅ S3 state file size: $STATE_SIZE bytes"
 
   ec2-apply:
     name: EC2 - Terraform Apply
@@ -193,13 +213,42 @@ jobs:
 
       - name: Terraform Init
         working-directory: iac/envs/dev/ec2
-        run: terraform init
+        run: terraform init -reconfigure
+
+      - name: Verify EKS State Exists
+        run: |
+          echo "Checking if EKS state exists in S3..."
+          aws s3 ls s3://wiz-tech-exercise-terraform-state-180294187104/dev/eks/terraform.tfstate
+          
+          STATE_SIZE=$(aws s3 ls s3://wiz-tech-exercise-terraform-state-180294187104/dev/eks/terraform.tfstate --summarize | grep "Total Size" | awk '{print $3}')
+          
+          if [ -z "$STATE_SIZE" ] || [ "$STATE_SIZE" -lt "1000" ]; then
+            echo "❌ ERROR: EKS state file is empty or missing!"
+            echo "EC2 cannot proceed without EKS state."
+            exit 1
+          fi
+          
+          echo "✅ EKS state exists and is valid ($STATE_SIZE bytes)"
 
       - name: Terraform Apply
         working-directory: iac/envs/dev/ec2
         env:
           TF_VAR_mongo_ssh_public_key: ${{ steps.ssh-key.outputs.ssh_public_key }}
         run: terraform apply -auto-approve
+
+      - name: Verify State is Not Empty
+        working-directory: iac/envs/dev/ec2
+        run: |
+          echo "Verifying state was saved to S3..."
+          terraform state list > /tmp/ec2_state_list.txt
+          RESOURCE_COUNT=$(wc -l < /tmp/ec2_state_list.txt)
+          
+          if [ "$RESOURCE_COUNT" -eq "0" ]; then
+            echo "❌ ERROR: EC2 state is empty after apply!"
+            exit 1
+          fi
+          
+          echo "✅ EC2 state contains $RESOURCE_COUNT resources"
 
       - name: Save Outputs
         id: outputs
