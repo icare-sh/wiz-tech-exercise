@@ -5,6 +5,7 @@ APP_DIR ?= app
 IMAGE_NAME ?= wiz-tech-exercise
 IMAGE_TAG ?= latest
 ANSIBLE_DIR ?= iac/envs/dev/ansible
+ANSIBLE_VAULT_PASS_FILE ?= ~/.ansible_vault_pass
 HELM_CHART ?= iac/kubernetes/app
 AWS_REGION ?= us-east-1
 AWS_ACCOUNT_ID ?= 180294187104
@@ -12,9 +13,9 @@ AWS_ACCOUNT_ID ?= 180294187104
 .PHONY: eks-fmt eks-init eks-validate eks-plan eks-apply eks-destroy eks-outputs
 .PHONY: ec2-fmt ec2-init ec2-validate ec2-plan ec2-apply ec2-destroy ec2-outputs
 .PHONY: app-build app-run app-scan app-push
-.PHONY: ansible-setup ansible-run
+.PHONY: ansible-setup ansible-run ansible-create-vault-pass
 .PHONY: helm-setup helm-deploy helm-status
-.PHONY: deploy-all clean-all
+.PHONY: deploy-all clean-all setup-cicd
 
 eks-fmt:
 	terraform -chdir=$(TF_DIR_EKS) fmt -recursive
@@ -85,7 +86,18 @@ ansible-setup:
 
 ansible-run:
 	@echo "Running Ansible playbook..."
-	ansible-playbook -i $(ANSIBLE_DIR)/inventory $(ANSIBLE_DIR)/mongo.yml --ask-vault-pass
+	@if [ -f $(ANSIBLE_VAULT_PASS_FILE) ]; then \
+		ansible-playbook -i $(ANSIBLE_DIR)/inventory $(ANSIBLE_DIR)/mongo.yml --vault-password-file $(ANSIBLE_VAULT_PASS_FILE); \
+	else \
+		ansible-playbook -i $(ANSIBLE_DIR)/inventory $(ANSIBLE_DIR)/mongo.yml --ask-vault-pass; \
+	fi
+
+ansible-create-vault-pass:
+	@echo "Creating Ansible Vault password file..."
+	@read -sp "Enter Ansible Vault password: " VAULT_PASS; \
+	echo "$$VAULT_PASS" > $(ANSIBLE_VAULT_PASS_FILE); \
+	chmod 600 $(ANSIBLE_VAULT_PASS_FILE); \
+	echo "\nVault password saved to $(ANSIBLE_VAULT_PASS_FILE)"
 
 helm-setup:
 	@echo "Adding Helm repos..."
@@ -143,4 +155,13 @@ clean-all:
 	@make ec2-destroy
 	@make eks-destroy
 	@echo "Cleanup complete"
+
+setup-cicd:
+	@echo "Setting up CI/CD infrastructure..."
+	@echo "1. Deploy GitHub OIDC provider and IAM role..."
+	@cd iac/github-oidc && terraform init && terraform apply
+	@echo "\n2. Retrieve GitHub Actions Role ARN..."
+	@cd iac/github-oidc && terraform output github_actions_role_arn
+	@echo "\n3. Add this ARN to GitHub Secrets as AWS_GITHUB_ACTIONS_ROLE_ARN"
+	@echo "\nCI/CD setup complete!"
 

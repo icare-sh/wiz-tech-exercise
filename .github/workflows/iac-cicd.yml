@@ -1,0 +1,265 @@
+name: IaC - Plan on PR, Apply on Main
+
+on:
+  pull_request:
+    paths:
+      - "iac/envs/dev/**"
+      - ".github/workflows/iac-cicd.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "iac/envs/dev/**"
+      - ".github/workflows/iac-cicd.yml"
+
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write
+
+env:
+  AWS_REGION: us-east-1
+  TF_VERSION: 1.14.2
+
+jobs:
+  eks-plan:
+    name: EKS - Terraform Plan
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_GITHUB_ACTIONS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Terraform Init
+        working-directory: iac/envs/dev/eks
+        run: terraform init
+
+      - name: Terraform Format Check
+        working-directory: iac/envs/dev/eks
+        run: terraform fmt -check -recursive
+
+      - name: Terraform Validate
+        working-directory: iac/envs/dev/eks
+        run: terraform validate
+
+      - name: Terraform Plan
+        working-directory: iac/envs/dev/eks
+        run: terraform plan -out=tfplan
+
+      - name: Upload Plan Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: eks-tfplan
+          path: iac/envs/dev/eks/tfplan
+          retention-days: 5
+
+  ec2-plan:
+    name: EC2 - Terraform Plan
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    needs: eks-plan
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_GITHUB_ACTIONS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Get SSH Public Key from Secrets Manager
+        id: ssh-key
+        run: |
+          SSH_PUBLIC_KEY=$(aws secretsmanager get-secret-value \
+            --secret-id /wiz-tech-exercise/ssh-public-key \
+            --query SecretString \
+            --output text)
+          echo "ssh_public_key<<EOF" >> $GITHUB_OUTPUT
+          echo "$SSH_PUBLIC_KEY" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Terraform Init
+        working-directory: iac/envs/dev/ec2
+        run: terraform init
+
+      - name: Terraform Format Check
+        working-directory: iac/envs/dev/ec2
+        run: terraform fmt -check -recursive
+
+      - name: Terraform Validate
+        working-directory: iac/envs/dev/ec2
+        run: terraform validate
+
+      - name: Terraform Plan
+        working-directory: iac/envs/dev/ec2
+        env:
+          TF_VAR_mongo_ssh_public_key: ${{ steps.ssh-key.outputs.ssh_public_key }}
+        run: terraform plan -out=tfplan
+
+      - name: Upload Plan Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ec2-tfplan
+          path: iac/envs/dev/ec2/tfplan
+          retention-days: 5
+
+  eks-apply:
+    name: EKS - Terraform Apply
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    environment: production
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_GITHUB_ACTIONS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Terraform Init
+        working-directory: iac/envs/dev/eks
+        run: terraform init
+
+      - name: Terraform Apply
+        working-directory: iac/envs/dev/eks
+        run: terraform apply -auto-approve
+
+  ec2-apply:
+    name: EC2 - Terraform Apply
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: eks-apply
+    environment: production
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_GITHUB_ACTIONS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Get SSH Public Key from Secrets Manager
+        id: ssh-key
+        run: |
+          SSH_PUBLIC_KEY=$(aws secretsmanager get-secret-value \
+            --secret-id /wiz-tech-exercise/ssh-public-key \
+            --query SecretString \
+            --output text)
+          echo "ssh_public_key<<EOF" >> $GITHUB_OUTPUT
+          echo "$SSH_PUBLIC_KEY" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Terraform Init
+        working-directory: iac/envs/dev/ec2
+        run: terraform init
+
+      - name: Terraform Apply
+        working-directory: iac/envs/dev/ec2
+        env:
+          TF_VAR_mongo_ssh_public_key: ${{ steps.ssh-key.outputs.ssh_public_key }}
+        run: terraform apply -auto-approve
+
+      - name: Save Outputs
+        id: outputs
+        working-directory: iac/envs/dev/ec2
+        run: |
+          echo "mongo_public_ip=$(terraform output -raw mongo_public_ip)" >> $GITHUB_OUTPUT
+          echo "mongo_private_ip=$(terraform output -raw mongo_private_ip)" >> $GITHUB_OUTPUT
+          echo "backup_bucket_name=$(terraform output -raw backup_bucket_name)" >> $GITHUB_OUTPUT
+          echo "ecr_repository_url=$(terraform output -raw ecr_repository_url)" >> $GITHUB_OUTPUT
+
+    outputs:
+      mongo_public_ip: ${{ steps.outputs.outputs.mongo_public_ip }}
+      mongo_private_ip: ${{ steps.outputs.outputs.mongo_private_ip }}
+      backup_bucket_name: ${{ steps.outputs.outputs.backup_bucket_name }}
+      ecr_repository_url: ${{ steps.outputs.outputs.ecr_repository_url }}
+
+  ansible-configure:
+    name: Ansible - Configure MongoDB
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: ec2-apply
+    environment: production
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_GITHUB_ACTIONS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Get SSH Private Key from Secrets Manager
+        run: |
+          aws secretsmanager get-secret-value \
+            --secret-id /wiz-tech-exercise/ssh-private-key \
+            --query SecretString \
+            --output text > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+
+      - name: Get Ansible Vault Password from Secrets Manager
+        run: |
+          aws secretsmanager get-secret-value \
+            --secret-id /wiz-tech-exercise/ansible-vault-password \
+            --query SecretString \
+            --output text > ~/.ansible_vault_pass
+          chmod 600 ~/.ansible_vault_pass
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Ansible
+        run: |
+          pip install ansible
+
+      - name: Update Ansible Inventory
+        working-directory: iac/envs/dev/ansible
+        env:
+          MONGO_IP: ${{ needs.ec2-apply.outputs.mongo_public_ip }}
+          BUCKET_NAME: ${{ needs.ec2-apply.outputs.backup_bucket_name }}
+        run: |
+          sed -i "s/^mongo_host ansible_host=.*/mongo_host ansible_host=$MONGO_IP ansible_user=ubuntu ansible_ssh_private_key_file=~\/.ssh\/id_ed25519 ansible_ssh_common_args='-o StrictHostKeyChecking=no'/" inventory
+          sed -i "s/^s3_bucket_name: .*/s3_bucket_name: $BUCKET_NAME/" group_vars/mongo/vars.yml
+
+      - name: Wait for EC2 SSH availability
+        run: |
+          timeout 300 bash -c 'until ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_ed25519 ubuntu@${{ needs.ec2-apply.outputs.mongo_public_ip }} "echo SSH ready"; do sleep 5; done'
+
+      - name: Run Ansible Playbook
+        working-directory: iac/envs/dev/ansible
+        run: |
+          ansible-playbook -i inventory mongo.yml --vault-password-file ~/.ansible_vault_pass
