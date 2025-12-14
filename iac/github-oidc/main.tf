@@ -119,7 +119,9 @@ resource "aws_iam_policy" "github_actions" {
           "sts:GetCallerIdentity",
           "elasticloadbalancing:*",
           "autoscaling:*",
-          "logs:*"
+          "logs:*",
+          "ssm:GetParameter",
+          "ssm:GetParameters"
         ]
         Resource = "*"
       }
