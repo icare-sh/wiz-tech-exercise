@@ -34,7 +34,7 @@ module "eks" {
   version = "21.8.0"
 
   name               = local.name
-  kubernetes_version = "1.34"
+  kubernetes_version = "1.31"
 
   endpoint_public_access  = true
   endpoint_private_access = true
@@ -45,24 +45,24 @@ module "eks" {
 
   enable_irsa = true
 
-  # Enable Access Entries for IAM authentication
-  authentication_mode = "API_AND_CONFIG_MAP"
-
-  # Allow the creator of the cluster (Terraform user) to be admin
+  authentication_mode                      = "API_AND_CONFIG_MAP"
   enable_cluster_creator_admin_permissions = true
 
   addons = {
     coredns = {
+      before_compute              = true
       most_recent                 = true
       resolve_conflicts_on_create = "OVERWRITE"
       resolve_conflicts_on_update = "OVERWRITE"
     }
     kube-proxy = {
+      before_compute              = true
       most_recent                 = true
       resolve_conflicts_on_create = "OVERWRITE"
       resolve_conflicts_on_update = "OVERWRITE"
     }
     vpc-cni = {
+      before_compute              = true
       most_recent                 = true
       resolve_conflicts_on_create = "OVERWRITE"
       resolve_conflicts_on_update = "OVERWRITE"

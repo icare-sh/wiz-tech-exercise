@@ -80,7 +80,7 @@ ansible-setup:
 	@echo "Updating Ansible inventory with Terraform outputs..."
 	@MONGO_IP=$$(terraform -chdir=$(TF_DIR_EC2) output -raw mongo_public_ip); \
 	BUCKET=$$(terraform -chdir=$(TF_DIR_EC2) output -raw backup_bucket_name); \
-	sed -i "s/^mongo_host ansible_host=.*/mongo_host ansible_host=$$MONGO_IP ansible_user=ubuntu ansible_ssh_private_key_file=~\/.ssh\/id_ed25519/" $(ANSIBLE_DIR)/inventory; \
+	sed -i "s/^mongo_host ansible_host=.*/mongo_host ansible_host=$$MONGO_IP ansible_user=ubuntu ansible_ssh_private_key_file=~\/.ssh\/id_ed25519 ansible_ssh_common_args='-o StrictHostKeyChecking=no'/" $(ANSIBLE_DIR)/inventory; \
 	sed -i "s/^s3_bucket_name: .*/s3_bucket_name: $$BUCKET/" $(ANSIBLE_DIR)/group_vars/mongo/vars.yml
 
 ansible-run:
