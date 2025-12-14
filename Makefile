@@ -15,7 +15,7 @@ AWS_ACCOUNT_ID ?= 180294187104
 .PHONY: app-build app-run app-scan app-push
 .PHONY: ansible-setup ansible-run ansible-create-vault-pass
 .PHONY: helm-setup helm-deploy helm-status
-.PHONY: deploy-all clean-all setup-cicd setup-backend verify-states
+.PHONY: deploy-all clean-all setup-cicd setup-backend verify-states fix-state-corruption
 
 eks-fmt:
 	terraform -chdir=$(TF_DIR_EKS) fmt -recursive
@@ -180,4 +180,8 @@ setup-cicd:
 verify-states:
 	@echo "Verifying Terraform states in S3..."
 	@./scripts/verify-states.sh
+
+fix-state-corruption:
+	@echo "Fixing Terraform state corruption (S3/DynamoDB checksum mismatch)..."
+	@./scripts/fix-state-corruption.sh
 
