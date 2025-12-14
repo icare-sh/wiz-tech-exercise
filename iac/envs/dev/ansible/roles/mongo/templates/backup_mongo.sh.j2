@@ -1,0 +1,22 @@
+#!/bin/bash
+set -e
+
+# Configuration
+BUCKET_NAME="{{ s3_bucket_name }}"
+MONGO_USER="{{ mongo_admin_user }}"
+MONGO_PASS="{{ mongo_admin_password }}"
+TIMESTAMP=$(date +%Y-%m-%d_%H-%M-%S)
+BACKUP_FILE="mongo-backup-$TIMESTAMP.gz"
+
+# Dump and compress
+mongodump --username "$MONGO_USER" --password "$MONGO_PASS" --authenticationDatabase admin --archive | gzip > "/tmp/$BACKUP_FILE"
+
+# Upload to S3 (Instance Profile allows this via AdministratorAccess)
+aws s3 cp "/tmp/$BACKUP_FILE" "s3://$BUCKET_NAME/$BACKUP_FILE"
+
+# Cleanup
+rm -f "/tmp/$BACKUP_FILE"
+
+echo "Backup uploaded to s3://$BUCKET_NAME/$BACKUP_FILE"
+
+

@@ -1,6 +1,10 @@
 # Local .terraform directories
 .terraform/
 
+# Backend config files (created during setup, not committed)
+**/backend.tf
+!**/backend.tf.example
+
 # .tfstate files
 *.tfstate
 *.tfstate.*
@@ -35,3 +39,29 @@ override.tf.json
 # Ignore CLI configuration files
 .terraformrc
 terraform.rc
+
+tfplan
+
+.terraform.lock.hcl
+
+# Ansible Vault Password (SENSITIVE)
+.ansible_vault_pass
+**/.ansible_vault_pass
+
+# SSH Keys (SENSITIVE)
+*.pem
+*.key
+id_rsa*
+id_ed25519*
+
+# Environment Files (SENSITIVE)
+.env
+**/.env
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
