@@ -24,7 +24,11 @@ jobs:
         with:
           context: ./app
           push: false
+          load: true
           tags: local/wiz-exercise:pr
+
+      - name: List local images
+        run: docker images | head
 
       - name: Trivy scan (report)
         uses: aquasecurity/trivy-action@0.24.0
