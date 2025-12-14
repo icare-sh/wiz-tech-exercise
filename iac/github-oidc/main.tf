@@ -112,16 +112,13 @@ resource "aws_iam_policy" "github_actions" {
           "iam:*",
           "s3:*",
           "ecr:*",
-          "secretsmanager:GetSecretValue",
-          "secretsmanager:DescribeSecret",
-          "kms:Decrypt",
-          "kms:DescribeKey",
+          "secretsmanager:*",
+          "kms:*",
           "sts:GetCallerIdentity",
           "elasticloadbalancing:*",
           "autoscaling:*",
           "logs:*",
-          "ssm:GetParameter",
-          "ssm:GetParameters"
+          "ssm:*"
         ]
         Resource = "*"
       }

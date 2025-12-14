@@ -32,6 +32,12 @@ jobs:
           role-to-assume: ${{ secrets.AWS_GITHUB_ACTIONS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.14.2
+          terraform_wrapper: false
+
       - name: Get ECR Repository URL
         id: ecr
         working-directory: iac/envs/dev/ec2
@@ -91,6 +97,12 @@ jobs:
           role-to-assume: ${{ secrets.AWS_GITHUB_ACTIONS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.14.2
+          terraform_wrapper: false
+
       - name: Get MongoDB Private IP
         id: mongo
         working-directory: iac/envs/dev/ec2
@@ -114,7 +126,6 @@ jobs:
           helm repo update
 
       - name: Deploy AWS Load Balancer Controller
-        working-directory: iac/envs/dev/eks
         run: |
           terraform init
           LB_ROLE_ARN=$(terraform output -raw lb_controller_role_arn)
@@ -126,6 +137,7 @@ jobs:
             --set serviceAccount.name=aws-load-balancer-controller \
             --set serviceAccount.annotations."eks\.amazonaws\.com/role-arn"=$LB_ROLE_ARN \
             --wait
+        working-directory: iac/envs/dev/eks
 
       - name: Deploy Application
         run: |
