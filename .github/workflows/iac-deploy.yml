@@ -1,12 +1,9 @@
-name: Infrastructure Deploy
+name: Deploy All
 
 on:
   push:
     branches:
       - main
-    paths:
-      - "iac/envs/dev/**"
-      - ".github/workflows/iac-deploy.yml"
   workflow_dispatch:
 
 permissions:
@@ -26,6 +23,7 @@ jobs:
       mongo_private_ip: ${{ steps.ec2-outputs.outputs.mongo_private_ip }}
       ecr_repository_url: ${{ steps.ec2-outputs.outputs.ecr_repository_url }}
       lb_controller_role_arn: ${{ steps.eks-outputs.outputs.lb_controller_role_arn }}
+      cluster_name: ${{ steps.eks-outputs.outputs.cluster_name }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4

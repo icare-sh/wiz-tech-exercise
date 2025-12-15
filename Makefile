@@ -115,7 +115,7 @@ helm-deploy:
 	@LB_ROLE_ARN=$$(terraform -chdir=$(TF_DIR_EKS) output -raw lb_controller_role_arn); \
 	helm upgrade --install aws-load-balancer-controller eks/aws-load-balancer-controller \
 	  -n kube-system \
-	  --set clusterName=wiz-v3-eks \
+	  --set clusterName=wiz-v4-eks \
 	  --set serviceAccount.create=true \
 	  --set serviceAccount.name=aws-load-balancer-controller \
 	  --set serviceAccount.annotations."eks\.amazonaws\.com/role-arn"=$$LB_ROLE_ARN
