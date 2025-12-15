@@ -1,7 +1,16 @@
-variable "mongo_source_node_sg_id" {
-  description = "Override for Mongo allowed source security group (defaults to EKS nodes SG)"
+variable "vpc_id" {
+  description = "VPC ID from EKS deployment"
   type        = string
-  default     = null
+}
+
+variable "subnet_id" {
+  description = "Public subnet ID for EC2 instance"
+  type        = string
+}
+
+variable "mongo_source_node_sg_id" {
+  description = "EKS nodes security group ID for MongoDB access"
+  type        = string
 }
 
 variable "mongo_ssh_public_key" {
