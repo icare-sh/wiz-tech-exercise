@@ -1,5 +1,5 @@
 locals {
-  name   = "wiz-v3-eks"
+  name   = "wiz-v4-eks"
   region = "us-east-1"
 
   vpc_cidr = "10.123.0.0/16"
