@@ -15,7 +15,7 @@ AWS_ACCOUNT_ID ?= 180294187104
 .PHONY: app-build app-run app-scan app-push
 .PHONY: ansible-setup ansible-run ansible-create-vault-pass
 .PHONY: helm-setup helm-deploy helm-status
-.PHONY: deploy-all clean-all setup-cicd setup-backend verify-states
+.PHONY: deploy-all clean-all setup-cicd setup-backend verify-states fix-state-corruption
 
 eks-fmt:
 	terraform -chdir=$(TF_DIR_EKS) fmt -recursive
@@ -108,14 +108,14 @@ helm-setup:
 	helm repo add eks https://aws.github.io/eks-charts
 	helm repo update
 	@echo "Updating kubeconfig..."
-	aws eks update-kubeconfig --region $(AWS_REGION) --name wiz-demo-cluster
+	aws eks update-kubeconfig --region $(AWS_REGION) --name wiz-prod-eks
 
 helm-deploy:
 	@echo "Deploying AWS Load Balancer Controller..."
 	@LB_ROLE_ARN=$$(terraform -chdir=$(TF_DIR_EKS) output -raw lb_controller_role_arn); \
 	helm upgrade --install aws-load-balancer-controller eks/aws-load-balancer-controller \
 	  -n kube-system \
-	  --set clusterName=wiz-demo-cluster \
+	  --set clusterName=wiz-prod-eks \
 	  --set serviceAccount.create=true \
 	  --set serviceAccount.name=aws-load-balancer-controller \
 	  --set serviceAccount.annotations."eks\.amazonaws\.com/role-arn"=$$LB_ROLE_ARN
@@ -180,4 +180,8 @@ setup-cicd:
 verify-states:
 	@echo "Verifying Terraform states in S3..."
 	@./scripts/verify-states.sh
+
+fix-state-corruption:
+	@echo "Fixing Terraform state corruption (S3/DynamoDB checksum mismatch)..."
+	@./scripts/fix-state-corruption.sh
 

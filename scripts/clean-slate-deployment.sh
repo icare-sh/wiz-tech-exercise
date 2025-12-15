@@ -77,11 +77,11 @@ aws logs delete-log-group --region $AWS_REGION \
   --log-group-name /aws/eks/wiz_cluster_eks/cluster 2>/dev/null || echo "Log group already deleted"
 
 aws logs delete-log-group --region $AWS_REGION \
-  --log-group-name /aws/eks/wiz-demo-cluster/cluster 2>/dev/null || echo "Log group already deleted"
+  --log-group-name /aws/eks/wiz-prod-eks/cluster 2>/dev/null || echo "Log group already deleted"
 
 echo ""
 echo "[Step 5/7] Resource names updated in code..."
-echo "  - EKS cluster: wiz_cluster_eks → wiz-demo-cluster"
+echo "  - EKS cluster: wiz_cluster_eks → wiz-prod-eks"
 echo "  - All references updated in Makefile and workflows"
 
 echo ""
@@ -100,10 +100,11 @@ echo ""
 echo "Next steps:"
 echo "1. Merge your PR to main on GitHub"
 echo "2. GitHub Actions will deploy:"
-echo "   - EKS cluster (with new name: wiz-demo-cluster)"
+echo "   - EKS cluster (with new name: wiz-prod-eks)"
 echo "   - EC2 + MongoDB"
 echo "   - Ansible configuration"
 echo ""
 echo "Or deploy locally with:"
 echo "  AWS_PROFILE=wiz make deploy-all"
 echo ""
+

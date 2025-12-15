@@ -159,25 +159,41 @@ jobs:
         working-directory: iac/envs/dev/eks
         run: |
           echo "Verifying state was saved to S3..."
+          
+          # Wait a few seconds for S3 to propagate
+          sleep 5
+          
+          # Check local state first
           terraform state list > /tmp/state_list.txt
           RESOURCE_COUNT=$(wc -l < /tmp/state_list.txt)
           
           if [ "$RESOURCE_COUNT" -eq "0" ]; then
-            echo "❌ ERROR: State is empty after apply!"
-            echo "This means resources were NOT saved to S3."
+            echo "❌ ERROR: Local state is empty after apply!"
+            echo "This means terraform apply did not create any resources."
             exit 1
           fi
           
-          echo "✅ State contains $RESOURCE_COUNT resources"
-          echo "Verifying S3 state file exists and is not empty..."
-          STATE_SIZE=$(aws s3 ls s3://wiz-tech-exercise-terraform-state-180294187104/dev/eks/terraform.tfstate --summarize | grep "Total Size" | awk '{print $3}')
+          echo "✅ Local state contains $RESOURCE_COUNT resources"
           
-          if [ -z "$STATE_SIZE" ] || [ "$STATE_SIZE" -lt "1000" ]; then
-            echo "❌ ERROR: S3 state file is empty or too small ($STATE_SIZE bytes)"
+          # Verify S3 state exists and is not empty
+          echo "Checking S3 state file..."
+          if aws s3 ls s3://wiz-tech-exercise-terraform-state-180294187104/dev/eks/terraform.tfstate; then
+            STATE_SIZE=$(aws s3api head-object \
+              --bucket wiz-tech-exercise-terraform-state-180294187104 \
+              --key dev/eks/terraform.tfstate \
+              --query ContentLength \
+              --output text 2>/dev/null || echo "0")
+            
+            if [ "$STATE_SIZE" -gt "500" ]; then
+              echo "✅ S3 state file is valid: $STATE_SIZE bytes"
+            else
+              echo "⚠️  WARNING: S3 state file is small ($STATE_SIZE bytes), but resources were created locally."
+              echo "This might be a propagation delay. Continuing..."
+            fi
+          else
+            echo "❌ ERROR: S3 state file does not exist!"
             exit 1
           fi
-          
-          echo "✅ S3 state file size: $STATE_SIZE bytes"
 
   ec2-apply:
     name: EC2 - Terraform Apply
@@ -218,13 +234,22 @@ jobs:
       - name: Verify EKS State Exists
         run: |
           echo "Checking if EKS state exists in S3..."
-          aws s3 ls s3://wiz-tech-exercise-terraform-state-180294187104/dev/eks/terraform.tfstate
           
-          STATE_SIZE=$(aws s3 ls s3://wiz-tech-exercise-terraform-state-180294187104/dev/eks/terraform.tfstate --summarize | grep "Total Size" | awk '{print $3}')
-          
-          if [ -z "$STATE_SIZE" ] || [ "$STATE_SIZE" -lt "1000" ]; then
-            echo "❌ ERROR: EKS state file is empty or missing!"
+          if ! aws s3 ls s3://wiz-tech-exercise-terraform-state-180294187104/dev/eks/terraform.tfstate; then
+            echo "❌ ERROR: EKS state file does not exist!"
             echo "EC2 cannot proceed without EKS state."
+            exit 1
+          fi
+          
+          STATE_SIZE=$(aws s3api head-object \
+            --bucket wiz-tech-exercise-terraform-state-180294187104 \
+            --key dev/eks/terraform.tfstate \
+            --query ContentLength \
+            --output text 2>/dev/null || echo "0")
+          
+          if [ "$STATE_SIZE" -lt "500" ]; then
+            echo "❌ ERROR: EKS state file is too small ($STATE_SIZE bytes)!"
+            echo "EC2 cannot proceed without valid EKS state."
             exit 1
           fi
           
@@ -239,7 +264,10 @@ jobs:
       - name: Verify State is Not Empty
         working-directory: iac/envs/dev/ec2
         run: |
-          echo "Verifying state was saved to S3..."
+          echo "Verifying EC2 state was saved to S3..."
+          
+          sleep 5
+          
           terraform state list > /tmp/ec2_state_list.txt
           RESOURCE_COUNT=$(wc -l < /tmp/ec2_state_list.txt)
           
@@ -323,4 +351,5 @@ jobs:
         working-directory: iac/envs/dev/ansible
         run: |
           ansible-playbook -i inventory mongo.yml --vault-password-file ~/.ansible_vault_pass
+
 

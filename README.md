@@ -372,6 +372,20 @@ AWS_PROFILE=wiz terraform force-unlock <LOCK_ID>
 
 ### Terraform State Issues
 
+**State corruption (checksum mismatch)**:
+```bash
+# Error: "state data in S3 does not have the expected content"
+# This happens when S3 and DynamoDB checksums are out of sync
+
+# Fix automatically
+AWS_PROFILE=wiz make fix-state-corruption
+
+# Or manually
+AWS_PROFILE=wiz aws dynamodb delete-item \
+  --table-name wiz-tech-exercise-terraform-locks \
+  --key '{"LockID":{"S":"wiz-tech-exercise-terraform-state-180294187104/dev/eks/terraform.tfstate-md5"}}'
+```
+
 **Verify state is in S3**:
 ```bash
 # Check all states
