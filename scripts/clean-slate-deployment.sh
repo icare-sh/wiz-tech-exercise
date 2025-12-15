@@ -107,3 +107,4 @@ echo ""
 echo "Or deploy locally with:"
 echo "  AWS_PROFILE=wiz make deploy-all"
 echo ""
+

@@ -10,3 +10,4 @@ resource "aws_ecr_repository" "app" {
   tags = local.tags
 }
 
+

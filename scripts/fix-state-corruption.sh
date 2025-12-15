@@ -62,3 +62,4 @@ echo "You can now run:"
 echo "  cd iac/envs/dev/eks && terraform init -reconfigure"
 echo "  cd iac/envs/dev/ec2 && terraform init -reconfigure"
 echo ""
+
