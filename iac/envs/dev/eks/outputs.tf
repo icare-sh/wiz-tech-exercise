@@ -48,3 +48,23 @@ output "kubectl_update_kubeconfig_command" {
   value       = "aws eks update-kubeconfig --region ${local.region} --name ${module.eks.cluster_name}"
 }
 
+output "private_subnets" {
+  description = "Private subnet IDs as list"
+  value       = module.vpc.private_subnets
+}
+
+output "public_subnets" {
+  description = "Public subnet IDs as list"
+  value       = module.vpc.public_subnets
+}
+
+output "eks_node_sg_id" {
+  description = "EKS node security group ID"
+  value       = module.eks.node_security_group_id
+}
+
+output "cluster_name" {
+  description = "EKS cluster name"
+  value       = module.eks.cluster_name
+}
+
