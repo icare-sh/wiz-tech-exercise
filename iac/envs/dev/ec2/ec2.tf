@@ -19,9 +19,9 @@ data "aws_ami" "ubuntu_2004" {
 }
 
 locals {
-  name = "wiz_mongo_vm"
+  name = "wiz_mongo_ec2"
   tags = {
-    Example   = "wiz_mongo_vm"
+    Example   = "wiz_mongo_ec2"
     ManagedBy = "Terraform"
   }
 }
