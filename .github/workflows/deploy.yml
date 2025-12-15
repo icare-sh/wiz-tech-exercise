@@ -220,7 +220,7 @@ jobs:
       - name: Scan Image with Trivy
         uses: aquasecurity/trivy-action@0.24.0
         with:
-          image-ref: ${{ steps.login-ecr.outputs.registry }}/wiz-ecr-app:${{ github.sha }}
+          image-ref: ${{ steps.login-ecr.outputs.registry }}/wiz-app-image:${{ github.sha }}
           format: table
           exit-code: 0
           ignore-unfixed: true
@@ -238,7 +238,7 @@ jobs:
           LB_CONTROLLER_ROLE_ARN: ${{ needs.deploy-infrastructure.outputs.lb_controller_role_arn }}
         run: |
           helm upgrade --install wiz-app . \
-            --set image.repository=$ECR_REGISTRY/wiz-ecr-app  \
+            --set image.repository=$ECR_REGISTRY/wiz-app-image \
             --set image.tag=$IMAGE_TAG \
             --set mongodb.uri="mongodb://admin:SuperSecretPassword123!@${MONGO_PRIVATE_IP}:27017" \
             --set serviceAccount.annotations."eks\.amazonaws\.com/role-arn"=$LB_CONTROLLER_ROLE_ARN \
@@ -258,4 +258,4 @@ jobs:
             echo "**URL**: Provisioning... (check in a few minutes)" >> $GITHUB_STEP_SUMMARY
           fi
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Image**: ${{ steps.login-ecr.outputs.registry }}/wiz-ecr-app:${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Image**: ${{ steps.login-ecr.outputs.registry }}/wiz-app-image:${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
