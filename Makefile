@@ -108,7 +108,7 @@ helm-setup:
 	helm repo add eks https://aws.github.io/eks-charts
 	helm repo update
 	@echo "Updating kubeconfig..."
-	aws eks update-kubeconfig --region $(AWS_REGION) --name wiz-final-eks
+	aws eks update-kubeconfig --region $(AWS_REGION) --name wiz-v2-eks
 
 helm-deploy:
 	@echo "Deploying AWS Load Balancer Controller..."
