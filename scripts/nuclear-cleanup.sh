@@ -52,12 +52,25 @@ echo "=============================================="
 echo "Step 2: Deleting EC2 Instances"
 echo "=============================================="
 
+# Delete EC2 instances with "mongo" or "wiz" tags
 for INSTANCE in $(aws ec2 describe-instances --region $AWS_REGION \
-    --filters "Name=tag:Name,Values=*mongo*" "Name=instance-state-name,Values=running,stopped" \
-    --query 'Reservations[*].Instances[*].InstanceId' --output text); do
+    --filters "Name=instance-state-name,Values=running,stopped,pending" \
+    --query 'Reservations[*].Instances[?Tags[?contains(Value, `mongo`) || contains(Value, `wiz`)]].InstanceId' \
+    --output text); do
     echo "Terminating EC2 instance: $INSTANCE"
     aws ec2 terminate-instances --instance-ids $INSTANCE --region $AWS_REGION
 done
+
+# Delete all key pairs with "wiz" or "mongo" in name
+for KEY in $(aws ec2 describe-key-pairs --region $AWS_REGION \
+    --query 'KeyPairs[?contains(KeyName, `wiz`) || contains(KeyName, `mongo`)].KeyName' \
+    --output text); do
+    echo "Deleting key pair: $KEY"
+    aws ec2 delete-key-pair --key-name $KEY --region $AWS_REGION || true
+done
+
+echo "Waiting 30s for EC2 instances to terminate..."
+sleep 30
 
 echo ""
 echo "=============================================="
