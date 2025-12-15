@@ -19,10 +19,14 @@ data "aws_ami" "ubuntu_2004" {
 }
 
 locals {
-  name = "wiz_mongo_ec2"
+  # Naming convention: wiz-{purpose}-{service}
+  name = "wiz-datastore-mongo"
   tags = {
-    Example   = "wiz_mongo_ec2"
-    ManagedBy = "Terraform"
+    Project     = "wiz-tech-exercise"
+    Environment = "dev"
+    ManagedBy   = "Terraform"
+    Team        = "SecureLabs"
+    Component   = "Database"
   }
 }
 

@@ -1,5 +1,5 @@
 resource "aws_ecr_repository" "app" {
-  name                 = "wiz-app-image"
+  name                 = "wiz-securelabs-app"
   image_tag_mutability = "MUTABLE"
   force_delete         = true
 

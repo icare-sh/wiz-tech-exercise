@@ -1,5 +1,6 @@
 locals {
-  name   = "wiz-prod-v2"
+  # Naming convention: wiz-{purpose}-{service}
+  name   = "wiz-securelabs-eks"
   region = "us-east-1"
 
   vpc_cidr = "10.123.0.0/16"
@@ -10,8 +11,10 @@ locals {
   intra_subnets   = ["10.123.5.0/24", "10.123.6.0/24"]
 
   tags = {
-    Example   = local.name
-    ManagedBy = "Terraform"
+    Project     = "wiz-tech-exercise"
+    Environment = "dev"
+    ManagedBy   = "Terraform"
+    Team        = "SecureLabs"
   }
 }
 

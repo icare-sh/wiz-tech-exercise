@@ -1,10 +1,10 @@
 image:
-  repository: 180294187104.dkr.ecr.us-east-1.amazonaws.com/wiz-tech-exercise-app
+  repository: 180294187104.dkr.ecr.us-east-1.amazonaws.com/wiz-securelabs-app
   pullPolicy: IfNotPresent
   tag: "latest"
 
 service:
-  type: ClusterIP # Changed from LoadBalancer to ClusterIP
+  type: ClusterIP
   port: 80
   targetPort: 8080
 
@@ -15,6 +15,7 @@ ingress:
     alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/target-type: ip
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'
+    alb.ingress.kubernetes.io/tags: Project=wiz-tech-exercise,Team=SecureLabs
   hosts:
     - host: ""
       paths:
@@ -22,12 +23,21 @@ ingress:
           pathType: Prefix
 
 mongodb:
-  uri: "mongodb://admin:SuperSecretPassword123!@mongo-ip:27017" # To be replaced
+  uri: "mongodb://admin:SuperSecretPassword123!@mongo-ip:27017" # To be replaced at deploy time
 
-# Weakness: App runs as cluster-admin
+# Weakness: App runs with cluster-admin privileges (intentional vulnerability)
 serviceAccount:
   create: true
-  name: "wiz-app-sa"
+  name: "wiz-securelabs-app-sa"
+
+resources:
+  limits:
+    memory: "256Mi"
+    cpu: "500m"
+  requests:
+    memory: "128Mi"
+    cpu: "250m"
+
 
 
 

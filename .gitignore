@@ -48,6 +48,7 @@ tfplan
 .ansible_vault_pass
 **/.ansible_vault_pass
 
+
 # SSH Keys (SENSITIVE)
 *.pem
 *.key
@@ -65,3 +66,6 @@ id_ed25519*
 # OS
 .DS_Store
 Thumbs.db
+
+
+Wiz_Tech_Exercise_V4.pdf

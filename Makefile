@@ -108,14 +108,16 @@ helm-setup:
 	helm repo add eks https://aws.github.io/eks-charts
 	helm repo update
 	@echo "Updating kubeconfig..."
-	aws eks update-kubeconfig --region $(AWS_REGION) --name wiz-prod
+	@CLUSTER_NAME=$$(terraform -chdir=$(TF_DIR_EKS) output -raw cluster_name); \
+	aws eks update-kubeconfig --region $(AWS_REGION) --name $$CLUSTER_NAME
 
 helm-deploy:
 	@echo "Deploying AWS Load Balancer Controller..."
-	@LB_ROLE_ARN=$$(terraform -chdir=$(TF_DIR_EKS) output -raw lb_controller_role_arn); \
+	@CLUSTER_NAME=$$(terraform -chdir=$(TF_DIR_EKS) output -raw cluster_name); \
+	LB_ROLE_ARN=$$(terraform -chdir=$(TF_DIR_EKS) output -raw lb_controller_role_arn); \
 	helm upgrade --install aws-load-balancer-controller eks/aws-load-balancer-controller \
 	  -n kube-system \
-	  --set clusterName=wiz-prod \
+	  --set clusterName=$$CLUSTER_NAME \
 	  --set serviceAccount.create=true \
 	  --set serviceAccount.name=aws-load-balancer-controller \
 	  --set serviceAccount.annotations."eks\.amazonaws\.com/role-arn"=$$LB_ROLE_ARN
