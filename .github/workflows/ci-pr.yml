@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   security-scan:
-    name: 🛡️ Security Scans
+    name: Security Scans
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -48,11 +48,14 @@ jobs:
         continue-on-error: true # user requirement: don't fail, but report. Wait... user said "sans déploiement" but "le pipeline ne doit pas échouer sur les findings". ok.
 
   terraform-check:
-    name: 🏗️ Terraform Validation
+    name: Terraform Validation
     runs-on: ubuntu-latest
     env:
       AWS_REGION: us-east-1
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Setup Environment
         uses: ./.github/actions/setup-aws-terraform
         with:

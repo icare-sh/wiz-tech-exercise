@@ -15,7 +15,7 @@ env:
 
 jobs:
   deploy-infra:
-    name: 🏗️ Deploy Infrastructure
+    name: Deploy Infrastructure
     runs-on: ubuntu-latest
     outputs:
       mongo_ip: ${{ steps.outputs.outputs.mongo_ip }}
@@ -23,6 +23,9 @@ jobs:
       cluster_name: ${{ steps.outputs.outputs.cluster_name }}
       lb_role_arn: ${{ steps.outputs.outputs.lb_role_arn }}
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Setup Environment
         uses: ./.github/actions/setup-aws-terraform
         with:
@@ -81,10 +84,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Only need AWS for Vault check if needed, but actually purely Ansible here if keys are passed
-      # But we standardized on OIDC role for everything generally.
-      
-      - name: Retrieve SSH Key
+      - name: Setup Environment
+        uses: ./.github/actions/setup-aws-terraform
+        with:
         run: |
           echo "${{ secrets.MONGO_SSH_PRIVATE_KEY }}" > private_key.pem
           chmod 600 private_key.pem
@@ -109,8 +111,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Configure AWS Credentials (OIDC)
-        uses: aws-actions/configure-aws-credentials@v4
+      - name: Setup Environment
+        uses: ./.github/actions/setup-aws-terraform
         with:
           role-to-assume: ${{ secrets.AWS_GITHUB_ACTIONS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
