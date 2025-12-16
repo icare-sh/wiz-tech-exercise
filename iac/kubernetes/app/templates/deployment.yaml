@@ -5,7 +5,7 @@ metadata:
   labels:
     {{- include "wiz-exercise-app.labels" . | nindent 4 }}
 spec:
-  replicas: 1
+  replicas: {{ .Values.replicaCount | default 1 }}
   selector:
     matchLabels:
       {{- include "wiz-exercise-app.selectorLabels" . | nindent 6 }}
@@ -13,6 +13,7 @@ spec:
     metadata:
       labels:
         {{- include "wiz-exercise-app.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/environment: {{ .Values.environment | default "dev" }}
     spec:
       serviceAccountName: {{ .Values.serviceAccount.name }}
       containers:
@@ -21,13 +22,44 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - name: http
-              containerPort: 8080
+              containerPort: {{ .Values.service.targetPort | default 8080 }}
               protocol: TCP
           env:
             - name: MONGODB_URI
-              value: {{ .Values.mongodb.uri | quote }}
+              {{- if .Values.mongodb.existingSecret }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.mongodb.existingSecret }}
+                  key: {{ .Values.mongodb.existingSecretKey | default "mongodb-uri" }}
+              {{- else if .Values.secrets.createSecret }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "wiz-exercise-app.fullname" . }}-secrets
+                  key: mongodb-uri
+              {{- else }}
+              value: ""
+              {{- end }}
             - name: SECRET_KEY
-              value: "mysecretkey"
+              {{- if .Values.secrets.existingSecret }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.existingSecret }}
+                  key: secret-key
+              {{- else if .Values.secrets.createSecret }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "wiz-exercise-app.fullname" . }}-secrets
+                  key: secret-key
+              {{- else }}
+              value: "change-me-in-production"
+              {{- end }}
+            - name: ENVIRONMENT
+              value: {{ .Values.environment | default "dev" | quote }}
+          {{- if .Values.resources }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          {{- end }}
+
 
 
 

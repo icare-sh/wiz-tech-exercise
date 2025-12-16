@@ -125,8 +125,16 @@ helm-deploy:
 	@kubectl wait --for=condition=available --timeout=300s deployment/aws-load-balancer-controller -n kube-system || true
 	@echo "Deploying application..."
 	@MONGO_IP=$$(terraform -chdir=$(TF_DIR_EC2) output -raw mongo_private_ip); \
+	ECR_URL=$$(terraform -chdir=$(TF_DIR_EC2) output -raw ecr_repository_url); \
 	helm upgrade --install wiz-app $(HELM_CHART) \
-	  --set mongodb.uri="mongodb://admin:SuperSecretPassword123!@$$MONGO_IP:27017"
+	  -f $(HELM_CHART)/values-dev.yaml \
+	  --set image.repository=$$ECR_URL \
+	  --set image.tag=latest \
+	  --set mongodb.host=$$MONGO_IP \
+	  --set mongodb.username=admin \
+	  --set mongodb.password="$${MONGO_PASSWORD:-SuperSecretPassword123!}" \
+	  --set secrets.secretKey="$${APP_SECRET_KEY:-dev-secret-key}" \
+	  --set environment=dev
 
 helm-status:
 	@echo "=== Pods ==="

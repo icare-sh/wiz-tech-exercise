@@ -235,16 +235,25 @@ jobs:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
           MONGO_PRIVATE_IP: ${{ needs.deploy-infrastructure.outputs.mongo_private_ip }}
-          LB_CONTROLLER_ROLE_ARN: ${{ needs.deploy-infrastructure.outputs.lb_controller_role_arn }}
+          # MongoDB credentials from Secrets Manager (passed via needs.deploy-infrastructure)
+          MONGO_USERNAME: "admin"
+          MONGO_PASSWORD: ${{ secrets.MONGO_PASSWORD }}
+          SECRET_KEY: ${{ secrets.APP_SECRET_KEY }}
         run: |
+          # Deploy using modular values with --set for sensitive data
           helm upgrade --install wiz-app . \
-            --set image.repository=$ECR_REGISTRY/wiz-app-image \
+            -f values-dev.yaml \
+            --set image.repository=$ECR_REGISTRY/wiz-securelabs-app \
             --set image.tag=$IMAGE_TAG \
-            --set mongodb.uri="mongodb://admin:SuperSecretPassword123!@${MONGO_PRIVATE_IP}:27017" \
-            --set serviceAccount.annotations."eks\.amazonaws\.com/role-arn"=$LB_CONTROLLER_ROLE_ARN \
+            --set mongodb.host="${MONGO_PRIVATE_IP}" \
+            --set mongodb.username="${MONGO_USERNAME}" \
+            --set mongodb.password="${MONGO_PASSWORD}" \
+            --set secrets.secretKey="${SECRET_KEY}" \
+            --set environment="production" \
             --wait --timeout=10m
           
           echo "✅ App deployed via Helm"
+          echo "📦 Image: $ECR_REGISTRY/wiz-securelabs-app:$IMAGE_TAG"
 
       - name: Get Application URL
         run: |
@@ -258,4 +267,4 @@ jobs:
             echo "**URL**: Provisioning... (check in a few minutes)" >> $GITHUB_STEP_SUMMARY
           fi
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Image**: ${{ steps.login-ecr.outputs.registry }}/wiz-app-image:${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Image**: ${{ steps.login-ecr.outputs.registry }}/wiz-securelabs-app:${{ github.sha }}" >> $GITHUB_STEP_SUMMARY

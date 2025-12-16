@@ -1,13 +1,39 @@
+# =============================================================================
+# Wiz SecureLabs App - Helm Values
+# =============================================================================
+# All sensitive values should be passed via --set at deploy time
+# DO NOT commit actual secrets to this file
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Image Configuration
+# Override at deploy time: --set image.repository=xxx --set image.tag=xxx
+# -----------------------------------------------------------------------------
 image:
-  repository: 180294187104.dkr.ecr.us-east-1.amazonaws.com/wiz-securelabs-app
+  # Default placeholder - MUST be overridden at deploy time
+  repository: ""  # e.g., 180294187104.dkr.ecr.us-east-1.amazonaws.com/wiz-securelabs-app
   pullPolicy: IfNotPresent
+  # Default to 'latest' but should use git SHA in CI/CD
   tag: "latest"
 
+# -----------------------------------------------------------------------------
+# AWS Configuration (for ECR image pull)
+# -----------------------------------------------------------------------------
+aws:
+  region: "us-east-1"
+  accountId: ""  # Set at deploy time if needed
+
+# -----------------------------------------------------------------------------
+# Service Configuration
+# -----------------------------------------------------------------------------
 service:
   type: ClusterIP
   port: 80
   targetPort: 8080
 
+# -----------------------------------------------------------------------------
+# Ingress Configuration (ALB)
+# -----------------------------------------------------------------------------
 ingress:
   enabled: true
   className: "alb"
@@ -22,14 +48,47 @@ ingress:
         - path: /
           pathType: Prefix
 
+# -----------------------------------------------------------------------------
+# MongoDB Configuration
+# SENSITIVE: Pass via --set at deploy time, NOT here
+# -----------------------------------------------------------------------------
 mongodb:
-  uri: "mongodb://admin:SuperSecretPassword123!@mongo-ip:27017" # To be replaced at deploy time
+  # These are placeholders - MUST be overridden
+  host: ""           # e.g., 10.123.1.208
+  port: "27017"
+  database: "admin"
+  # Credentials should be passed at deploy time:
+  # --set mongodb.username=xxx --set mongodb.password=xxx
+  username: ""
+  password: ""
+  # Or use existing secret:
+  existingSecret: ""
+  existingSecretKey: "mongodb-uri"
 
+# -----------------------------------------------------------------------------
+# Application Secrets
+# SENSITIVE: Create secret externally or pass via --set
+# -----------------------------------------------------------------------------
+secrets:
+  # If true, Helm will create the secret from values
+  # If false, expects an existing secret named by existingSecret
+  createSecret: true
+  existingSecret: ""
+  # Secret key - should be passed via --set secrets.secretKey=xxx
+  secretKey: ""
+
+# -----------------------------------------------------------------------------
+# Service Account Configuration
 # Weakness: App runs with cluster-admin privileges (intentional vulnerability)
+# -----------------------------------------------------------------------------
 serviceAccount:
   create: true
   name: "wiz-securelabs-app-sa"
+  annotations: {}
 
+# -----------------------------------------------------------------------------
+# Resource Limits
+# -----------------------------------------------------------------------------
 resources:
   limits:
     memory: "256Mi"
@@ -37,6 +96,17 @@ resources:
   requests:
     memory: "128Mi"
     cpu: "250m"
+
+# -----------------------------------------------------------------------------
+# Replicas & Scaling
+# -----------------------------------------------------------------------------
+replicaCount: 1
+
+# -----------------------------------------------------------------------------
+# Environment (dev, staging, prod)
+# -----------------------------------------------------------------------------
+environment: "dev"
+
 
 
 

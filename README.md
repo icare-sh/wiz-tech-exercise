@@ -116,8 +116,38 @@ AWS_PROFILE=wiz make deploy-all
 2. ✅ EC2 MongoDB VM (Ubuntu 20.04, MongoDB 4.4)
 3. ✅ Ansible configures MongoDB (auth, backups to S3)
 4. ✅ Docker build + push to ECR
-5. ✅ Helm deploys app to Kubernetes
+5. ✅ Helm deploys app to Kubernetes (see detailed secure step below)
 6. ✅ ALB Ingress exposes app publicly
+
+### Step 2b: Secure Helm Deployment (Manual)
+
+Instead of the generic `make helm-deploy`, use a secret override file to avoid shell history issues with passwords:
+
+1. Create `iac/kubernetes/app/values-override.yaml`:
+   ```yaml
+   image:
+     repository: 180294187104.dkr.ecr.us-east-1.amazonaws.com/wiz-securelabs-app
+     tag: "YOUR_IMAGE_TAG" # e.g., 20251216...
+   
+   service:
+     targetPort: 8080 # Go App port
+   
+   mongodb:
+     host: "10.123.1.208" # MongoDB Private IP
+     password: "SuperSecretPassword123!"
+   
+   secrets:
+     secretKey: "dev-secret-key-2024"
+   ```
+
+2. Deploy securely:
+   ```bash
+   cd iac/kubernetes/app
+   helm upgrade --install wiz-app . \
+     -f values-dev.yaml \
+     -f values-override.yaml \
+     --wait
+   ```
 
 ### Step 3: Get Application URL
 

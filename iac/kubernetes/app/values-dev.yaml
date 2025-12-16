@@ -1,0 +1,30 @@
+# =============================================================================
+# Wiz SecureLabs App - DEV Environment Values
+# =============================================================================
+# This file contains non-sensitive dev defaults.
+# Sensitive values should still be passed via --set or environment variables.
+# =============================================================================
+
+# Image - use local ECR
+image:
+  repository: 180294187104.dkr.ecr.us-east-1.amazonaws.com/wiz-securelabs-app
+  tag: "latest"
+
+# MongoDB connection - host should be passed at deploy time
+mongodb:
+  host: ""  # Pass via: --set mongodb.host=<IP>
+  port: "27017"
+  database: "admin"
+  username: "admin"
+  password: ""  # Pass via: --set mongodb.password=<password>
+
+# Secrets
+secrets:
+  createSecret: true
+  secretKey: ""  # Pass via: --set secrets.secretKey=<key>
+
+# Environment
+environment: "dev"
+
+# Replicas
+replicaCount: 1

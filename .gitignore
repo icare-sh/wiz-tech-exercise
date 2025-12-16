@@ -27,6 +27,10 @@ override.tf.json
 *_override.tf
 *_override.tf.json
 
+# Helm override values (SENSITIVE)
+values-override.yaml
+*-override.yaml
+
 # Ignore transient lock info files created by terraform apply
 .terraform.tfstate.lock.info
 
