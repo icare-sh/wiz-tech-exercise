@@ -1,17 +1,4 @@
-variable "vpc_id" {
-  description = "VPC ID from EKS deployment"
-  type        = string
-}
 
-variable "subnet_id" {
-  description = "Public subnet ID for EC2 instance"
-  type        = string
-}
-
-variable "mongo_source_node_sg_id" {
-  description = "EKS nodes security group ID for MongoDB access"
-  type        = string
-}
 
 variable "mongo_ssh_public_key" {
   description = "SSH public key (OpenSSH) for Mongo EC2 access"
