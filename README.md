@@ -1,104 +1,114 @@
 # 🚀 Wiz Tech Exercise - SecOps Deployment
 
-Ce projet déploie une application Go ("Wiz Exercise App") connectée à MongoDB sur AWS EKS, avec une pipeline CI/CD DevSecOps complète.
+This project deploys a Go application ("Wiz Exercise App") connected to MongoDB on AWS EKS, with a complete DevSecOps CI/CD pipeline.
 
-## 📋 Prérequis
+## 📋 Prerequisites
 
-Avant de commencer, assurez-vous d'avoir installé :
+Before starting, ensure you have installed:
 
-*   **Infrastructure as Code** : Terraform (>= 1.5)
-*   **Conteneurs & K8s** : Docker, Helm, kubectl
-*   **Cloud** : AWS CLI (configuré avec vos credentials)
-*   **Automation** : Make
+*   **Infrastructure as Code**: Terraform (>= 1.5)
+*   **Containers & K8s**: Docker, Helm, kubectl
+*   **Cloud**: AWS CLI (configured with your credentials)
+*   **Automation**: Make
 
 ---
 
-## 💻 Déploiement Local (Développement)
+## 💻 Local Deployment (Development)
 
-Pour tester et développer en local sans passer par la CI.
+To test and develop locally without using CI.
 
-### 1. Déployer l'Infrastructure
-Déployez les ressources dans cet ordre (Network/EKS d'abord, puis EC2/Mongo + Security).
+### 1. Deploy Infrastructure
+Deploy resources in this order (Network/EKS first, then EC2/Mongo + Security).
 
 ```bash
-# 1. Sécurité (CloudTrail, Config, GuardDuty)
+# 1. Security (CloudTrail, Config, GuardDuty)
 cd iac/envs/dev/security
 terraform init && terraform apply -auto-approve
 
-# 2. Cluster EKS
+# 2. EKS Cluster
 cd ../eks
 terraform init && terraform apply -auto-approve
 
-# 3. Base de données (EC2 Mongo + ECR)
+# 3. Database (EC2 Mongo + ECR)
 cd ../ec2
 terraform init && terraform apply -auto-approve
 ```
 
-### 2. Configurer les Secrets (.gitignored)
-Créez un fichier `iac/kubernetes/app/values-override.yaml` pour surcharger les secrets sans les commiter :
+### 2. Configure Secrets (.gitignored)
+Create a file `iac/kubernetes/app/values-override.yaml` to override secrets without committing them:
 
 ```yaml
 mongodb:
-  password: "SuperSecretPassword123!" # Doit matcher le vault.yml Ansible
+  password: "SuperSecretPassword123!" # Must match Ansible vault.yml
 secrets:
-  secretKey: "votre-cle-secrete-app"
+  secretKey: "your-app-secret-key"
 ```
 
-### 3. Build & Déploiement
-Récupérez d'abord les informations nécessaires depuis Terraform, puis utilisez le Makefile simplifié.
+### 3. Build & Deploy
+First retrieve necessary information from Terraform, then use the simplified Makefile.
 
 ```bash
-# 1. Récupérer les Outputs Terraform
+# 1. Retrieve Terraform Outputs
 cd iac/envs/dev/ec2
 export ECR_URL=$(terraform output -raw ecr_repository_url)
 export MONGO_IP=$(terraform output -raw mongo_private_ip)
 cd ../../../..
 
-# 2. Build & Push (Passer l'URL ECR)
+# 2. Build & Push (Pass ECR URL)
 make build
 make push ECR_URL=$ECR_URL
 
-# 3. Déployer (Passer les infos nécessaires)
+# 3. Deploy (Pass necessary info)
 make deploy ECR_URL=$ECR_URL MONGO_IP=$MONGO_IP
 ```
 
 ---
 
-## 🔄 Déploiement CI/CD (Automatisé)
+## 🔄 CI/CD Deployment (Automated)
 
-Le projet utilise GitHub Actions avec une approche **DevSecOps**.
+The project uses GitHub Actions with a **DevSecOps** approach.
 
-### ⚙️ Configuration GitHub Actions
-Ajoutez les secrets suivants dans votre repo GitHub :
+### ⚙️ GitHub Actions Configuration
+Add the following secrets to your GitHub repo:
 
 | Secret | Description |
 | :--- | :--- |
-| `AWS_GITHUB_ACTIONS_ROLE_ARN` | ARN du rôle IAM pour l'OIDC |
-| `MONGO_SSH_PRIVATE_KEY` | Clé privée SSH pour configurer Mongo (Ansible) |
-| `MONGO_SSH_PUBLIC_KEY` | Clé publique SSH |
-| `ANSIBLE_VAULT_PASSWORD` | Mot de passe pour décrypter les secrets Ansible |
-| `MONGO_PASSWORD` | Mot de passe MongoDB (App) |
-| `APP_SECRET_KEY` | Clé secrète de l'application |
+| `AWS_GITHUB_ACTIONS_ROLE_ARN` | IAM Role ARN for OIDC |
+| `MONGO_SSH_PRIVATE_KEY` | SSH Private Key to configure Mongo (Ansible) |
+| `MONGO_SSH_PUBLIC_KEY` | SSH Public Key |
+| `ANSIBLE_VAULT_PASSWORD` | Password to decrypt Ansible secrets |
+| `MONGO_PASSWORD` | MongoDB Password (App) |
+| `APP_SECRET_KEY` | Application Secret Key |
 
 ### 🚀 Workflows
 
 #### 1. Pull Request (`ci-pr.yml`)
-*   **Déclencheur** : Push sur `dev` ou PR vers `main`.
-*   **Actions** : Scans de Sécurité (Trivy Filesystem, IaC, Secrets) + Validation Terraform.
-*   **But** : Vérifier la qualité et la sécurité avant merge.
+*   **Trigger**: Push to `dev` or PR to `main`.
+*   **Actions**: Security Scans (Trivy Filesystem, IaC, Secrets) + Terraform Validation.
+*   **Goal**: Verify quality and security before merge.
 
 #### 2. Release (`cd-release.yml`)
-*   **Déclencheur** : Push d'un tag Git (ex: `v1.0.0`).
-*   **Actions** :
-    1.  **Infra** : Terraform Apply (EKS, EC2, Security).
-    2.  **Config** : Ansible Playbook (sur EC2 Mongo).
-    3.  **Build** : Docker Build & Push (Tag image = Tag Git).
-    4.  **Deploy** : Helm Upgrade sur EKS.
-*   **Comment lancer** :
+*   **Trigger**: Push of a Git tag (e.g., `v1.0.0`).
+*   **Actions**:
+    1.  **Infra**: Terraform Apply (EKS, EC2, Security).
+    2.  **Config**: Ansible Playbook (on EC2 Mongo).
+    3.  **Build**: Docker Build & Push (Image Tag = Git Tag or Commit SHA).
+    4.  **Deploy**: Helm Upgrade on EKS.
+*   **How to run**:
     ```bash
     git checkout dev
     git tag v1.0.0
     git push origin v1.0.0
     ```
 
+---
 
+## 🛡️ Security & Vulnerabilities (Milestones 2 & 4)
+
+The exercise includes specific security configurations and intentional vulnerabilities for demonstration purposes.
+
+*   **Cloud Native Security**: CloudTrail, AWS Config, GuardDuty are managed in `iac/envs/dev/security`.
+*   **Admin Vulnerability**: The pod runs with `cluster-admin` (Proof: `kubectl auth can-i '*' '*'`).
+*   **Network Vulnerability**: Port 22 open on Mongo (Detected by AWS Config).
+
+*Refer to `RECAP_AND_TESTING.md` for detailed testing procedures.*
