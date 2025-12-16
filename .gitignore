@@ -2,7 +2,8 @@
 .terraform/
 
 # Backend config files (created during setup, not committed)
-**/backend.tf
+# **/backend.tf
+
 !**/backend.tf.example
 
 # .tfstate files
@@ -71,5 +72,6 @@ id_ed25519*
 .DS_Store
 Thumbs.db
 
-
 Wiz_Tech_Exercise_V4.pdf
+
+RECAP_AND_TESTING.md
