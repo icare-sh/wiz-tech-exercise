@@ -114,27 +114,30 @@ helm-setup:
 helm-deploy:
 	@echo "Deploying AWS Load Balancer Controller..."
 	@CLUSTER_NAME=$$(terraform -chdir=$(TF_DIR_EKS) output -raw cluster_name); \
-	LB_ROLE_ARN=$$(terraform -chdir=$(TF_DIR_EKS) output -raw lb_controller_role_arn); \
+	helm repo add eks https://aws.github.io/eks-charts; \
+	helm repo update; \
 	helm upgrade --install aws-load-balancer-controller eks/aws-load-balancer-controller \
 	  -n kube-system \
 	  --set clusterName=$$CLUSTER_NAME \
 	  --set serviceAccount.create=true \
 	  --set serviceAccount.name=aws-load-balancer-controller \
-	  --set serviceAccount.annotations."eks\.amazonaws\.com/role-arn"=$$LB_ROLE_ARN
+	  --set serviceAccount.annotations."eks\.amazonaws\.com/role-arn"=$$(terraform -chdir=$(TF_DIR_EKS) output -raw lb_controller_role_arn)
 	@echo "Waiting for ALB Controller to be ready..."
 	@kubectl wait --for=condition=available --timeout=300s deployment/aws-load-balancer-controller -n kube-system || true
 	@echo "Deploying application..."
 	@MONGO_IP=$$(terraform -chdir=$(TF_DIR_EC2) output -raw mongo_private_ip); \
 	ECR_URL=$$(terraform -chdir=$(TF_DIR_EC2) output -raw ecr_repository_url); \
+	echo "Deploying with Image Tag: $(IMAGE_TAG)"; \
 	helm upgrade --install wiz-app $(HELM_CHART) \
 	  -f $(HELM_CHART)/values-dev.yaml \
 	  --set image.repository=$$ECR_URL \
-	  --set image.tag=latest \
+	  --set image.tag="$(IMAGE_TAG)" \
 	  --set mongodb.host=$$MONGO_IP \
 	  --set mongodb.username=admin \
 	  --set mongodb.password="$${MONGO_PASSWORD:-SuperSecretPassword123!}" \
 	  --set secrets.secretKey="$${APP_SECRET_KEY:-dev-secret-key}" \
-	  --set environment=dev
+	  --set environment=dev \
+	  --wait
 
 helm-status:
 	@echo "=== Pods ==="

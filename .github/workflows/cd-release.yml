@@ -1,0 +1,160 @@
+name: 🚀 Production Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  id-token: write # For OIDC
+  contents: read
+
+env:
+  AWS_REGION: us-east-1
+  IMAGE_TAG: ${{ github.ref_name }} # e.g., v1.0.0
+
+jobs:
+  deploy-infra:
+    name: 🏗️ Deploy Infrastructure
+    runs-on: ubuntu-latest
+    outputs:
+      mongo_ip: ${{ steps.outputs.outputs.mongo_ip }}
+      ecr_url: ${{ steps.outputs.outputs.ecr_url }}
+      cluster_name: ${{ steps.outputs.outputs.cluster_name }}
+      lb_role_arn: ${{ steps.outputs.outputs.lb_role_arn }}
+    steps:
+      - name: Setup Environment
+        uses: ./.github/actions/setup-aws-terraform
+        with:
+          role-to-assume: ${{ secrets.AWS_GITHUB_ACTIONS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Verify Backend Access & State (EKS)
+        run: |
+          cd iac/envs/dev/eks
+          terraform init
+          terraform state list || { echo "❌ Failed to read state!"; exit 1; }
+
+      - name: Deploy EKS Cluster
+        run: |
+          cd iac/envs/dev/eks
+          terraform apply -auto-approve
+
+      - name: Verify Backend Access & State (EC2)
+        run: |
+          cd iac/envs/dev/ec2
+          terraform init
+          terraform state list || { echo "❌ Failed to read state!"; exit 1; }
+
+      - name: Deploy EC2 & ECR
+        run: |
+          cd iac/envs/dev/ec2
+          terraform apply -auto-approve \
+            -var="mongo_ssh_public_key=${{ secrets.MONGO_SSH_PUBLIC_KEY }}" 
+        env:
+          TF_VAR_mongo_ssh_public_key: ${{ secrets.MONGO_SSH_PUBLIC_KEY }}
+
+      - name: Export Outputs
+        id: outputs
+        run: |
+          # EC2 Outputs
+          cd iac/envs/dev/ec2
+          MONGO_IP=$(terraform output -raw mongo_public_ip)
+          ECR_URL=$(terraform output -raw ecr_repository_url)
+          
+          # EKS Outputs
+          cd ../eks
+          CLUSTER_NAME=$(terraform output -raw cluster_name)
+          LB_ROLE_ARN=$(terraform output -raw lb_controller_role_arn)
+          
+          # Set Job Outputs
+          echo "mongo_ip=$MONGO_IP" >> $GITHUB_OUTPUT
+          echo "ecr_url=$ECR_URL" >> $GITHUB_OUTPUT
+          echo "cluster_name=$CLUSTER_NAME" >> $GITHUB_OUTPUT
+          echo "lb_role_arn=$LB_ROLE_ARN" >> $GITHUB_OUTPUT
+
+  configure-mongo:
+    name: ⚙️ Configure MongoDB (Ansible)
+    needs: deploy-infra
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Only need AWS for Vault check if needed, but actually purely Ansible here if keys are passed
+      # But we standardized on OIDC role for everything generally.
+      
+      - name: Retrieve SSH Key
+        run: |
+          echo "${{ secrets.MONGO_SSH_PRIVATE_KEY }}" > private_key.pem
+          chmod 600 private_key.pem
+          echo "ANSIBLE_VAULT_PASS=${{ secrets.ANSIBLE_VAULT_PASSWORD }}" > .ansible_vault_pass
+
+      - name: Run Ansible Playbook
+        uses: dawidd6/action-ansible-playbook@v2
+        with:
+          playbook: iac/envs/dev/ansible/playbook.yml
+          directory: ./
+          key: private_key.pem
+          inventory: |
+            [mongo]
+            ${{ needs.deploy-infra.outputs.mongo_ip }} ansible_user=ubuntu ansible_ssh_common_args='-o StrictHostKeyChecking=no'
+          vault_password: ${{ secrets.ANSIBLE_VAULT_PASSWORD }}
+
+  deploy-app:
+    name: 📦 Build & Deploy App
+    needs: [deploy-infra, configure-mongo]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_GITHUB_ACTIONS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Build & Push Docker Image
+        run: |
+          # Use values passed from infra job
+          export ECR_URL=${{ needs.deploy-infra.outputs.ecr_url }}
+          
+          # Override Makefile logic that uses terraform output
+          # We need to manually login and push using the vars since Makefile expects TF present
+          # Or better: We pass vars to Makefile if it supports it?
+          # Makefile currently does: ECR_URL=$$(terraform ... output ...)
+          # We should UPDATE Makefile to accept ECR_URL as env var override!
+          
+          # For now, let's just do the docker commands directly or assume we patch Makefile later.
+          # Actually, let's patch Makefile to allow ECR_URL override.
+          # But for this Step, I will use direct commands for clarity and speed as Makefile relies on TF.
+          
+          aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin $ECR_URL
+          
+          cd app
+          docker build -t wiz-app:${{ env.IMAGE_TAG }} .
+          docker tag wiz-app:${{ env.IMAGE_TAG }} $ECR_URL:${{ env.IMAGE_TAG }}
+          docker push $ECR_URL:${{ env.IMAGE_TAG }}
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v3
+
+      - name: Deploy to EKS
+        run: |
+          aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name ${{ needs.deploy-infra.outputs.cluster_name }}
+          
+          # Helm Deploy using direct command to avoid Makefile's TF dependency
+          ECR_URL=${{ needs.deploy-infra.outputs.ecr_url }}
+          MONGO_IP=${{ needs.deploy-infra.outputs.mongo_ip }}
+          
+          helm upgrade --install wiz-app iac/kubernetes/app \
+            -f iac/kubernetes/app/values-dev.yaml \
+            --set image.repository=$ECR_URL \
+            --set image.tag="${{ env.IMAGE_TAG }}" \
+            --set mongodb.host=$MONGO_IP \
+            --set mongodb.username=admin \
+            --set mongodb.password="${{ secrets.MONGO_PASSWORD }}" \
+            --set secrets.secretKey="${{ secrets.APP_SECRET_KEY }}" \
+            --set environment=dev \
+            --wait

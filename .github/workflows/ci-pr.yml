@@ -1,0 +1,76 @@
+name: Security & Quality Check
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ dev ]
+
+permissions:
+  contents: read
+  security-events: write # For GitHub Advanced Security (optional)
+
+jobs:
+  security-scan:
+    name: 🛡️ Security Scans
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy Vulnerability Scanner (FS)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          ignore-unfixed: true
+          format: 'table'
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+        continue-on-error: true # Intentional vulnerabilities present
+
+      - name: Run Trivy Config Scanner (IaC)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'config'
+          hide-progress: false
+          format: 'table'
+          exit-code: '0' # Don't fail pipeline, just report
+          severity: 'CRITICAL,HIGH'
+        continue-on-error: true
+
+      - name: Run Trivy Secret Scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scanners: 'secret'
+          exit-code: '1' # Fail on secrets!
+          severity: 'CRITICAL,HIGH'
+        continue-on-error: true # user requirement: don't fail, but report. Wait... user said "sans déploiement" but "le pipeline ne doit pas échouer sur les findings". ok.
+
+  terraform-check:
+    name: 🏗️ Terraform Validation
+    runs-on: ubuntu-latest
+    env:
+      AWS_REGION: us-east-1
+    steps:
+      - name: Setup Environment
+        uses: ./.github/actions/setup-aws-terraform
+        with:
+          role-to-assume: ${{ secrets.AWS_GITHUB_ACTIONS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Terraform Init & Validate (EKS)
+        run: |
+          cd iac/envs/dev/eks
+          terraform init -backend=false # Just check syntax/modules locally first, or use backend?
+          # User Requirement: "Vérifier l’accès au backend Terraform"
+          # So we MUST allow backend.
+          terraform init
+          terraform validate
+        continue-on-error: false
+      
+      - name: Terraform Init & Validate (EC2)
+        run: |
+          cd iac/envs/dev/ec2
+          terraform init
+          terraform validate
