@@ -30,3 +30,15 @@ deploy:
 		--set image.tag=$(IMAGE_TAG) \
 		--set mongodb.host=$(MONGO_IP) \
 		--wait
+
+clean:
+	@echo "⚠️  WARNING: This will destroy ALL resources (App, Mongo, Cluster, Security)."
+	@echo "Destroying Application..."
+	-helm uninstall wiz-app
+	@echo "Destroying EC2 layer (Mongo)..."
+	cd iac/envs/dev/ec2 && terraform init && TF_VAR_mongo_ssh_public_key="ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAAAgQDummyKeyForDestroyOperation==" terraform destroy -auto-approve
+	@echo "Destroying EKS layer (Cluster + VPC)..."
+	cd iac/envs/dev/eks && terraform init && terraform destroy -auto-approve
+	@echo "Destroying Security layer..."
+	cd iac/envs/dev/security && terraform init && terraform destroy -auto-approve
+	@echo "✅ Cleanup complete!"

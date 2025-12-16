@@ -47,7 +47,7 @@ jobs:
       - name: Deploy EKS Cluster
         run: |
           cd iac/envs/dev/eks
-          terraform apply -auto-approve
+          terraform apply -auto-approve -var="is_ci=true"
 
       - name: Verify Backend Access & State (EC2)
         run: |
