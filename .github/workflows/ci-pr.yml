@@ -4,8 +4,7 @@ on:
   pull_request:
     branches: [ main ]
   push:
-    branches-ignore:
-      - '**' # Disable push triggers, use PR only to avoid duplicates with CD on dev
+    branches: [ dev ]
 
 permissions:
   contents: read
