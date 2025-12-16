@@ -2,6 +2,7 @@ name: 🚀 Production Release
 
 on:
   push:
+
     tags:
       - 'v*'
 
@@ -11,7 +12,7 @@ permissions:
 
 env:
   AWS_REGION: us-east-1
-  IMAGE_TAG: ${{ github.ref_name }} # e.g., v1.0.0
+  IMAGE_TAG: ${{ github.sha }} # Use commit SHA for unique image tags on every push
 
 jobs:
   deploy-infra:
