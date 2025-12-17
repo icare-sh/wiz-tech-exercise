@@ -6,8 +6,7 @@ on:
   push:
     branches: [ dev ]
 
-permissions:
-  contents: read
+
 permissions:
   contents: read
   security-events: write # For GitHub Advanced Security (optional)
