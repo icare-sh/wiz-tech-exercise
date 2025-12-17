@@ -70,6 +70,7 @@ jobs:
           cd iac/envs/dev/ec2
           MONGO_IP=$(terraform output -raw mongo_public_ip)
           ECR_URL=$(terraform output -raw ecr_repository_url)
+          S3_BUCKET=$(terraform output -raw backup_bucket_name)
           
           # EKS Outputs
           cd ../eks
@@ -79,6 +80,7 @@ jobs:
           # Set Job Outputs
           echo "mongo_ip=$MONGO_IP" >> $GITHUB_OUTPUT
           echo "ecr_url=$ECR_URL" >> $GITHUB_OUTPUT
+          echo "s3_bucket=$S3_BUCKET" >> $GITHUB_OUTPUT
           echo "cluster_name=$CLUSTER_NAME" >> $GITHUB_OUTPUT
           echo "lb_role_arn=$LB_ROLE_ARN" >> $GITHUB_OUTPUT
 
@@ -96,22 +98,33 @@ jobs:
           role-to-assume: ${{ secrets.AWS_GITHUB_ACTIONS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Retrieve SSH Key
+      - name: Install Ansible
         run: |
-          echo "${{ secrets.MONGO_SSH_PRIVATE_KEY }}" > private_key.pem
-          chmod 600 private_key.pem
-          echo "ANSIBLE_VAULT_PASS=${{ secrets.ANSIBLE_VAULT_PASSWORD }}" > .ansible_vault_pass
+          sudo apt-get update
+          sudo apt-get install -y ansible
 
-      - name: Run Ansible Playbook
-        uses: dawidd6/action-ansible-playbook@v2
-        with:
-          playbook: iac/envs/dev/ansible/playbook.yml
-          directory: ./
-          key: private_key.pem
-          inventory: |
-            [mongo]
-            ${{ needs.deploy-infra.outputs.mongo_ip }} ansible_user=ubuntu ansible_ssh_common_args='-o StrictHostKeyChecking=no'
-          vault_password: ${{ secrets.ANSIBLE_VAULT_PASSWORD }}
+      - name: Create Secrets Files
+        run: |
+          # Create .ssh directory
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          
+          # Write SSH Key
+          echo "${{ secrets.MONGO_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          
+          # Write Vault Password
+          echo "${{ secrets.ANSIBLE_VAULT_PASSWORD }}" > ~/.ansible_vault_pass
+          chmod 600 ~/.ansible_vault_pass
+
+      - name: Run Ansible via Makefile
+        run: |
+          make ansible-run \
+            MONGO_IP=${{ needs.deploy-infra.outputs.mongo_ip }} \
+            S3_BUCKET=${{ needs.deploy-infra.outputs.s3_bucket }} \
+            SSH_KEY=~/.ssh/id_rsa \
+            VAULT_PASSWORD=~/.ansible_vault_pass \
+            USER_NAME=ubuntu
 
   deploy-app:
     name: Build & Deploy App

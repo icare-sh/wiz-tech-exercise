@@ -56,22 +56,25 @@ deploy:
 		--wait
 
 ansible-run:
-	@echo "Fetching Mongo IP..."
-	$(eval MONGO_IP := $(shell cd iac/envs/dev/ec2 && terraform output -raw mongo_public_ip))
-	@echo "Mongo IP: $(MONGO_IP)"
-	@if [ -z "$(MONGO_IP)" ]; then echo "Error: Could not get Mongo IP"; exit 1; fi
-	@echo "Fetching S3 Bucket Name..."
-	$(eval S3_BUCKET := $(shell cd iac/envs/dev/ec2 && terraform output -raw backup_bucket_name))
-	@echo "S3 Bucket: $(S3_BUCKET)"
-	@if [ -z "$(S3_BUCKET)" ]; then echo "Error: Could not get S3 Bucket Name"; exit 1; fi
-	@echo "Running Ansible..."
+	@MONGO_IP="$(MONGO_IP)"; \
+	S3_BUCKET="$(S3_BUCKET)"; \
+	if [ -z "$$MONGO_IP" ]; then \
+		echo "Fetching Mongo IP from Terraform..."; \
+		MONGO_IP=$$(cd iac/envs/dev/ec2 && terraform output -raw mongo_public_ip); \
+	fi; \
+	if [ -z "$$S3_BUCKET" ]; then \
+		echo "Fetching S3 Bucket Name from Terraform..."; \
+		S3_BUCKET=$$(cd iac/envs/dev/ec2 && terraform output -raw backup_bucket_name); \
+	fi; \
+	if [ -z "$$MONGO_IP" ] || [ -z "$$S3_BUCKET" ]; then echo "Error: Could not get Mongo IP or S3 Bucket"; exit 1; fi; \
+	echo "Running Ansible on $$MONGO_IP with Bucket $$S3_BUCKET..."; \
 	cd iac/envs/dev/ansible && \
 	ansible-playbook playbook.yml \
-	    -i "$(MONGO_IP)," \
+	    -i "$$MONGO_IP," \
 	    -u $(USER_NAME) \
 	    --private-key $(SSH_KEY) \
 	    --extra-vars "@group_vars/mongo/vault.yml" \
-	    -e "s3_bucket_name=$(S3_BUCKET)" \
+	    -e "s3_bucket_name=$$S3_BUCKET" \
 	    --vault-password-file $(VAULT_PASSWORD) \
 	    --ssh-common-args='-o StrictHostKeyChecking=no'
 
