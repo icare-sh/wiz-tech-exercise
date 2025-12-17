@@ -1,8 +1,8 @@
-# 🚀 Wiz Tech Exercise - SecOps Deployment
+# Wiz Tech Exercise - SecOps Deployment
 
 This project deploys a Go application ("Wiz Exercise App") connected to MongoDB on AWS EKS, with a complete DevSecOps CI/CD pipeline.
 
-## 📋 Prerequisites
+## Prerequisites
 
 Before starting, ensure you have installed:
 
@@ -13,7 +13,7 @@ Before starting, ensure you have installed:
 
 ---
 
-## 💻 Local Deployment (Development)
+## Local Deployment (Development)
 
 To test and develop locally without using CI.
 
@@ -64,11 +64,11 @@ make deploy ECR_URL=$ECR_URL MONGO_IP=$MONGO_IP
 
 ---
 
-## 🔄 CI/CD Deployment (Automated)
+## CI/CD Deployment (Automated)
 
 The project uses GitHub Actions with a **DevSecOps** approach.
 
-### ⚙️ GitHub Actions Configuration
+### GitHub Actions Configuration
 Add the following secrets to your GitHub repo:
 
 | Secret | Description |
@@ -80,7 +80,7 @@ Add the following secrets to your GitHub repo:
 | `MONGO_PASSWORD` | MongoDB Password (App) |
 | `APP_SECRET_KEY` | Application Secret Key |
 
-### 🚀 Workflows
+### Workflows
 
 #### 1. Pull Request (`ci-pr.yml`)
 *   **Trigger**: Push to `dev` or PR to `main`.
@@ -103,7 +103,7 @@ Add the following secrets to your GitHub repo:
 
 ---
 
-## 🛡️ Security & Vulnerabilities (Milestones 2 & 4)
+## Security & Vulnerabilities (Milestones 2 & 4)
 
 The exercise includes specific security configurations and intentional vulnerabilities for demonstration purposes.
 

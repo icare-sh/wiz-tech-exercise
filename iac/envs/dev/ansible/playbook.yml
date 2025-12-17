@@ -1,6 +1,6 @@
 ---
 - name: Configure MongoDB Instance
-  hosts: mongo
+  hosts: all
   become: true
   gather_facts: false # Désactiver pour éviter l'échec immédiat sur Python 3.8
   
