@@ -24,9 +24,13 @@ jobs:
           scan-type: 'fs'
           ignore-unfixed: true
           format: 'table'
+          output: 'report-fs.txt'
           vuln-type: 'os,library'
           severity: 'CRITICAL,HIGH'
-        continue-on-error: true # Intentional vulnerabilities present
+        continue-on-error: true
+
+      - name: Display FS Report
+        run: cat report-fs.txt
 
       - name: Run Trivy Config Scanner (IaC)
         uses: aquasecurity/trivy-action@master
@@ -34,18 +38,34 @@ jobs:
           scan-type: 'config'
           hide-progress: false
           format: 'table'
-          exit-code: '0' # Don't fail pipeline, just report
+          output: 'report-iac.txt'
+          exit-code: '0'
           severity: 'CRITICAL,HIGH'
         continue-on-error: true
+
+      - name: Display IaC Report
+        run: cat report-iac.txt
 
       - name: Run Trivy Secret Scanner
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: 'fs'
           scanners: 'secret'
-          exit-code: '1' # Fail on secrets!
+          exit-code: '1'
+          format: 'table'
+          output: 'report-secrets.txt'
           severity: 'CRITICAL,HIGH'
-        continue-on-error: true # user requirement: don't fail, but report. Wait... user said "sans déploiement" but "le pipeline ne doit pas échouer sur les findings". ok.
+        continue-on-error: true
+
+      - name: Display Secret Report
+        run: cat report-secrets.txt
+
+      - name: Upload Security Reports
+        uses: actions/upload-artifact@v4
+        if: always() # Upload even if secrets are found (step failed)
+        with:
+          name: security-reports
+          path: report-*.txt
 
   terraform-check:
     name: Terraform Validation
