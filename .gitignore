@@ -2,7 +2,8 @@
 .terraform/
 
 # Backend config files (created during setup, not committed)
-**/backend.tf
+# **/backend.tf
+
 !**/backend.tf.example
 
 # .tfstate files
@@ -27,6 +28,10 @@ override.tf.json
 *_override.tf
 *_override.tf.json
 
+# Helm override values (SENSITIVE)
+values-override.yaml
+*-override.yaml
+
 # Ignore transient lock info files created by terraform apply
 .terraform.tfstate.lock.info
 
@@ -48,6 +53,7 @@ tfplan
 .ansible_vault_pass
 **/.ansible_vault_pass
 
+
 # SSH Keys (SENSITIVE)
 *.pem
 *.key
@@ -65,3 +71,8 @@ id_ed25519*
 # OS
 .DS_Store
 Thumbs.db
+
+Wiz_Tech_Exercise_V4.pdf
+
+RECAP_AND_TESTING.md
+PRESENTATION_AND_DEMO.md 

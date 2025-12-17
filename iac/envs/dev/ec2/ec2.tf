@@ -19,17 +19,26 @@ data "aws_ami" "ubuntu_2004" {
 }
 
 locals {
-  name = "wiz_mongo_ec2"
+  # Naming convention: wiz-{purpose}-{service}
+  name = "wiz-datastore-mongo"
   tags = {
-    Example   = "wiz_mongo_ec2"
-    ManagedBy = "Terraform"
+    Project     = "wiz-tech-exercise"
+    Environment = "dev"
+    ManagedBy   = "Terraform"
+    Team        = "SecureLabs"
+    Component   = "Database"
   }
+
+  # Dynamic values from EKS state
+  vpc_id                  = data.terraform_remote_state.eks.outputs.vpc_id
+  subnet_id               = data.terraform_remote_state.eks.outputs.public_subnet_ids[0]
+  mongo_source_node_sg_id = data.terraform_remote_state.eks.outputs.eks_node_security_group_id
 }
 
 resource "aws_security_group" "mongo" {
   name        = "${local.name}-mongo-sg"
   description = "Mongo weak-by-design: SSH public, Mongo restricted to EKS nodes"
-  vpc_id      = var.vpc_id
+  vpc_id      = local.vpc_id
 
   tags = merge(local.tags, {
     Name = "${local.name}-mongo-sg"
@@ -53,7 +62,7 @@ resource "aws_security_group_rule" "mongo_from_eks_nodes" {
   from_port                = 27017
   to_port                  = 27017
   protocol                 = "tcp"
-  source_security_group_id = var.mongo_source_node_sg_id
+  source_security_group_id = local.mongo_source_node_sg_id
 }
 
 resource "aws_security_group_rule" "mongo_egress_all" {
@@ -114,7 +123,7 @@ resource "aws_key_pair" "mongo" {
 resource "aws_instance" "mongo" {
   ami                         = data.aws_ami.ubuntu_2004.id
   instance_type               = var.mongo_instance_type
-  subnet_id                   = split(",", var.subnet_id)[0]
+  subnet_id                   = local.subnet_id
   vpc_security_group_ids      = [aws_security_group.mongo.id]
   key_name                    = aws_key_pair.mongo.key_name
   associate_public_ip_address = true

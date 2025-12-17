@@ -1,0 +1,101 @@
+name: Security & Quality Check
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ dev ]
+
+
+permissions:
+  contents: read
+  security-events: write # For GitHub Advanced Security (optional)
+  id-token: write # Required for AWS OIDC authentication
+
+jobs:
+  security-scan:
+    name: Security Scans
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy Vulnerability Scanner (FS)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          ignore-unfixed: true
+          format: 'table'
+          output: 'report-fs.txt'
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+        continue-on-error: true
+
+      - name: Display FS Report
+        run: cat report-fs.txt
+
+      - name: Run Trivy Config Scanner (IaC)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'config'
+          hide-progress: false
+          format: 'table'
+          output: 'report-iac.txt'
+          exit-code: '0'
+          severity: 'CRITICAL,HIGH'
+        continue-on-error: true
+
+      - name: Display IaC Report
+        run: cat report-iac.txt
+
+      - name: Run Trivy Secret Scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scanners: 'secret'
+          exit-code: '1'
+          format: 'table'
+          output: 'report-secrets.txt'
+          severity: 'CRITICAL,HIGH'
+        continue-on-error: true
+
+      - name: Display Secret Report
+        run: cat report-secrets.txt
+
+      - name: Upload Security Reports
+        uses: actions/upload-artifact@v4
+        if: always() # Upload even if secrets are found (step failed)
+        with:
+          name: security-reports
+          path: report-*.txt
+
+  terraform-check:
+    name: Terraform Validation
+    runs-on: ubuntu-latest
+    env:
+      AWS_REGION: us-east-1
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup-aws-terraform
+        with:
+          role-to-assume: ${{ secrets.AWS_GITHUB_ACTIONS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Terraform Init & Validate (EKS)
+        run: |
+          cd iac/envs/dev/eks
+          terraform init -backend=false # Just check syntax/modules locally first, or use backend?
+          # User Requirement: "Vérifier l’accès au backend Terraform"
+          # So we MUST allow backend.
+          terraform init
+          terraform validate
+        continue-on-error: false
+      
+      - name: Terraform Init & Validate (EC2)
+        run: |
+          cd iac/envs/dev/ec2
+          terraform init
+          terraform validate

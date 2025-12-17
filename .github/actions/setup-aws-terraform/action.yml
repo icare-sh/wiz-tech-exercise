@@ -1,0 +1,28 @@
+name: 'Setup AWS & Terraform'
+description: 'Sets up the environment with Checkout, AWS Credentials, and Terraform'
+inputs:
+  role-to-assume:
+    description: 'IAM Role ARN for OIDC'
+    required: true
+  aws-region:
+    description: 'AWS Region'
+    required: false
+    default: 'us-east-1'
+  terraform-wrapper:
+    description: 'Enable Terraform wrapper'
+    required: false
+    default: 'true'
+
+runs:
+  using: "composite"
+  steps:
+    - name: Configure AWS Credentials (OIDC)
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ inputs.role-to-assume }}
+        aws-region: ${{ inputs.aws-region }}
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_wrapper: ${{ inputs.terraform-wrapper }}

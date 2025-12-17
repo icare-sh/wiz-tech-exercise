@@ -31,8 +31,8 @@
 
 - name: Create MongoDB admin user (idempotent)
   shell: |
-    mongo admin --eval 'db.createUser({user: "{{ mongo_admin_user }}", pwd: "{{ mongo_admin_password }}", roles: [{role: "root", db: "admin"}]})' || \
-    mongo admin -u "{{ mongo_admin_user }}" -p "{{ mongo_admin_password }}" --eval 'db.getUser("{{ mongo_admin_user }}")'
+    mongo admin --eval 'db.createUser({user: "{{ mongo_admin_user }}", pwd: "{{ mongodb_password }}", roles: [{role: "root", db: "admin"}]})' || \
+    mongo admin -u "{{ mongo_admin_user }}" -p "{{ mongodb_password }}" --eval 'db.getUser("{{ mongo_admin_user }}")'
   register: create_user
   changed_when: "'Successfully added user' in create_user.stdout"
   failed_when: 
