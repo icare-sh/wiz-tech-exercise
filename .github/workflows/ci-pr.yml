@@ -8,7 +8,10 @@ on:
 
 permissions:
   contents: read
+permissions:
+  contents: read
   security-events: write # For GitHub Advanced Security (optional)
+  id-token: write # Required for AWS OIDC authentication
 
 jobs:
   security-scan:
