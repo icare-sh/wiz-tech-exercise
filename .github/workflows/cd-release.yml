@@ -85,7 +85,7 @@ jobs:
           echo "lb_role_arn=$LB_ROLE_ARN" >> $GITHUB_OUTPUT
 
   configure-mongo:
-    name: ⚙️ Configure MongoDB (Ansible)
+    name: Configure MongoDB (Ansible)
     needs: deploy-infra
     runs-on: ubuntu-latest
     steps:
