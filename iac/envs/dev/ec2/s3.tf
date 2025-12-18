@@ -11,10 +11,26 @@ resource "aws_s3_bucket" "backups" {
 resource "aws_s3_bucket_public_access_block" "backups" {
   bucket = aws_s3_bucket.backups.id
 
-  block_public_acls       = false
   block_public_policy     = false
   ignore_public_acls      = false
   restrict_public_buckets = false
+}
+
+resource "aws_s3_bucket_ownership_controls" "backups" {
+  bucket = aws_s3_bucket.backups.id
+  rule {
+    object_ownership = "BucketOwnerPreferred"
+  }
+}
+
+resource "aws_s3_bucket_acl" "backups" {
+  depends_on = [
+    aws_s3_bucket_public_access_block.backups,
+    aws_s3_bucket_ownership_controls.backups,
+  ]
+
+  bucket = aws_s3_bucket.backups.id
+  acl    = "public-read"
 }
 
 # Bucket Policy for Public Read and List
