@@ -19,7 +19,9 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       mongo_ip: ${{ steps.outputs.outputs.mongo_ip }}
+      mongo_private_ip: ${{ steps.outputs.outputs.mongo_private_ip }}
       ecr_url: ${{ steps.outputs.outputs.ecr_url }}
+      s3_bucket: ${{ steps.outputs.outputs.s3_bucket }}
       cluster_name: ${{ steps.outputs.outputs.cluster_name }}
       lb_role_arn: ${{ steps.outputs.outputs.lb_role_arn }}
     steps:
