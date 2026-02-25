@@ -179,14 +179,14 @@ echo "Step 6: Clearing Terraform States in S3"
 echo "=============================================="
 
 echo "Backing up current states..."
-aws s3 cp s3://wiz-tech-exercise-terraform-state-180294187104/dev/eks/terraform.tfstate \
+aws s3 cp s3://wiz-tech-exercise-terraform-state-324037288864/dev/eks/terraform.tfstate \
     /tmp/eks-state-backup-$(date +%Y%m%d-%H%M%S).tfstate 2>/dev/null || echo "No EKS state to backup"
-aws s3 cp s3://wiz-tech-exercise-terraform-state-180294187104/dev/ec2/terraform.tfstate \
+aws s3 cp s3://wiz-tech-exercise-terraform-state-324037288864/dev/ec2/terraform.tfstate \
     /tmp/ec2-state-backup-$(date +%Y%m%d-%H%M%S).tfstate 2>/dev/null || echo "No EC2 state to backup"
 
 echo "Clearing states..."
-aws s3 rm s3://wiz-tech-exercise-terraform-state-180294187104/dev/eks/terraform.tfstate 2>/dev/null || true
-aws s3 rm s3://wiz-tech-exercise-terraform-state-180294187104/dev/ec2/terraform.tfstate 2>/dev/null || true
+aws s3 rm s3://wiz-tech-exercise-terraform-state-324037288864/dev/eks/terraform.tfstate 2>/dev/null || true
+aws s3 rm s3://wiz-tech-exercise-terraform-state-324037288864/dev/ec2/terraform.tfstate 2>/dev/null || true
 
 echo ""
 echo "=============================================="

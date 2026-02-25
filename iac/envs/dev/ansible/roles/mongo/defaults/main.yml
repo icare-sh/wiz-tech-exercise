@@ -1,3 +1,7 @@
 ---
 mongo_admin_user: "admin"
 mongo_database: "wiz-exercise"
+
+fail2ban_maxretry: 5
+fail2ban_findtime: 600
+fail2ban_bantime: 300

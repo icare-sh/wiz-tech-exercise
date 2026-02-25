@@ -1,0 +1,11 @@
+[DEFAULT]
+banaction = iptables-multiport
+
+[sshd]
+enabled  = true
+port     = ssh
+filter   = sshd
+logpath  = /var/log/auth.log
+maxretry = {{ fail2ban_maxretry | default(5) }}
+findtime = {{ fail2ban_findtime | default(600) }}
+bantime  = {{ fail2ban_bantime | default(300) }}

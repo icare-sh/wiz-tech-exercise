@@ -29,4 +29,24 @@ variable "mongo_ssh_cidr_blocks" {
   default     = ["0.0.0.0/0"]
 }
 
+variable "mongo_admin_user" {
+  description = "MongoDB admin username"
+  type        = string
+  default     = "admin"
+}
+
+variable "mongo_admin_password" {
+  description = "MongoDB admin password"
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
+variable "app_secret_key" {
+  description = "JWT secret key for the application"
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
 

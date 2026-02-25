@@ -64,4 +64,41 @@
     hour: "2"
     job: "/usr/local/bin/backup_mongo.sh >> /var/log/mongo_backup.log 2>&1"
 
+# --- Fail2ban: SSH brute-force protection ---
+
+- name: Install fail2ban
+  apt:
+    name: fail2ban
+    state: present
+    update_cache: yes
+
+- name: Deploy fail2ban jail configuration
+  template:
+    src: jail.local.j2
+    dest: /etc/fail2ban/jail.local
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Restart fail2ban
+
+- name: Ensure fail2ban is started and enabled
+  service:
+    name: fail2ban
+    state: started
+    enabled: yes
+
+# --- SSM Agent: Required for AWS Inspector vulnerability scanning ---
+
+- name: Install SSM Agent via snap
+  snap:
+    name: amazon-ssm-agent
+    classic: yes
+    state: present
+
+- name: Ensure SSM Agent is started and enabled
+  service:
+    name: snap.amazon-ssm-agent.amazon-ssm-agent
+    state: started
+    enabled: yes
+
 

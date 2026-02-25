@@ -68,3 +68,8 @@ output "cluster_name" {
   value       = module.eks.cluster_name
 }
 
+output "waf_acl_arn" {
+  description = "ARN of the WAF WebACL for the application ALB"
+  value       = aws_wafv2_web_acl.app.arn
+}
+
