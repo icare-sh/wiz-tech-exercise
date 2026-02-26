@@ -93,17 +93,6 @@ resource "aws_iam_policy" "github_actions" {
         ]
       },
       {
-        Sid    = "TerraformStateLocking"
-        Effect = "Allow"
-        Action = [
-          "dynamodb:GetItem",
-          "dynamodb:PutItem",
-          "dynamodb:DeleteItem",
-          "dynamodb:DescribeTable"
-        ]
-        Resource = "arn:aws:dynamodb:*:*:table/wiz-tech-exercise-terraform-locks"
-      },
-      {
         Sid    = "InfrastructureManagement"
         Effect = "Allow"
         Action = [
@@ -118,7 +107,16 @@ resource "aws_iam_policy" "github_actions" {
           "elasticloadbalancing:*",
           "autoscaling:*",
           "logs:*",
-          "ssm:*"
+          "ssm:*",
+          "wafv2:*",
+          "guardduty:*",
+          "config:*",
+          "cloudtrail:*",
+          "sns:*",
+          "ses:*",
+          "events:*",
+          "inspector2:*",
+          "securityhub:*"
         ]
         Resource = "*"
       }
