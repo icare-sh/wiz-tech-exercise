@@ -38,7 +38,7 @@ AWS_PROFILE=wiz terraform output
 
 Example output:
 ```
-s3_bucket_name = "wiz-tech-exercise-terraform-state-180294187104"
+s3_bucket_name = "wiz-tech-exercise-terraform-state-324037288864"
 dynamodb_table_name = "wiz-tech-exercise-terraform-locks"
 ```
 
@@ -53,7 +53,7 @@ Create `iac/envs/dev/eks/backend.tf`:
 ```hcl
 terraform {
   backend "s3" {
-    bucket         = "wiz-tech-exercise-terraform-state-180294187104"
+    bucket         = "wiz-tech-exercise-terraform-state-324037288864"
     key            = "dev/eks/terraform.tfstate"
     region         = "us-east-1"
     dynamodb_table = "wiz-tech-exercise-terraform-locks"
@@ -82,7 +82,7 @@ Repeat for:
 ```hcl
 terraform {
   backend "s3" {
-    bucket         = "wiz-tech-exercise-terraform-state-180294187104"
+    bucket         = "wiz-tech-exercise-terraform-state-324037288864"
     key            = "dev/eks/terraform.tfstate"
     region         = "us-east-1"
     dynamodb_table = "wiz-tech-exercise-terraform-locks"
@@ -96,7 +96,7 @@ terraform {
 ```hcl
 terraform {
   backend "s3" {
-    bucket         = "wiz-tech-exercise-terraform-state-180294187104"
+    bucket         = "wiz-tech-exercise-terraform-state-324037288864"
     key            = "dev/ec2/terraform.tfstate"
     region         = "us-east-1"
     dynamodb_table = "wiz-tech-exercise-terraform-locks"
@@ -110,7 +110,7 @@ terraform {
 ```hcl
 terraform {
   backend "s3" {
-    bucket         = "wiz-tech-exercise-terraform-state-180294187104"
+    bucket         = "wiz-tech-exercise-terraform-state-324037288864"
     key            = "cicd/github-oidc/terraform.tfstate"
     region         = "us-east-1"
     dynamodb_table = "wiz-tech-exercise-terraform-locks"
@@ -166,7 +166,7 @@ If you already deployed infrastructure locally:
 ### View State in S3
 
 ```bash
-AWS_PROFILE=wiz aws s3 ls s3://wiz-tech-exercise-terraform-state-180294187104/
+AWS_PROFILE=wiz aws s3 ls s3://wiz-tech-exercise-terraform-state-324037288864/
 ```
 
 ## Cost

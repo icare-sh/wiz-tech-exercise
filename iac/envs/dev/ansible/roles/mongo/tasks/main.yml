@@ -49,6 +49,16 @@
     mode: '0644'
   notify: Restart MongoDB
 
+- name: Apply MongoDB restart now so it listens on private IP
+  meta: flush_handlers
+
+- name: Wait for MongoDB to be ready after config change
+  wait_for:
+    port: 27017
+    host: "{{ ansible_default_ipv4.address }}"
+    delay: 2
+    timeout: 30
+
 - name: Install Backup Script
   template:
     src: backup_mongo.sh.j2
@@ -67,10 +77,12 @@
 # --- Fail2ban: SSH brute-force protection ---
 
 - name: Install fail2ban
-  apt:
-    name: fail2ban
-    state: present
-    update_cache: yes
+  shell: |
+    export DEBIAN_FRONTEND=noninteractive
+    apt-get update -qq
+    apt-get install -y fail2ban
+  args:
+    creates: /usr/bin/fail2ban-server
 
 - name: Deploy fail2ban jail configuration
   template:
@@ -90,10 +102,9 @@
 # --- SSM Agent: Required for AWS Inspector vulnerability scanning ---
 
 - name: Install SSM Agent via snap
-  snap:
-    name: amazon-ssm-agent
-    classic: yes
-    state: present
+  shell: snap install amazon-ssm-agent --classic
+  args:
+    creates: /snap/amazon-ssm-agent
 
 - name: Ensure SSM Agent is started and enabled
   service:

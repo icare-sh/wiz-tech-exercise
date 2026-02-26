@@ -68,6 +68,11 @@ output "cluster_name" {
   value       = module.eks.cluster_name
 }
 
+output "private_subnet_cidrs" {
+  description = "CIDR blocks of the EKS private subnets (for MongoDB SG rules)"
+  value       = local.private_subnets
+}
+
 output "waf_acl_arn" {
   description = "ARN of the WAF WebACL for the application ALB"
   value       = aws_wafv2_web_acl.app.arn
