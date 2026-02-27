@@ -33,6 +33,7 @@ locals {
   vpc_id                  = data.terraform_remote_state.eks.outputs.vpc_id
   subnet_id               = data.terraform_remote_state.eks.outputs.public_subnet_ids[0]
   mongo_source_node_sg_id = data.terraform_remote_state.eks.outputs.eks_node_security_group_id
+  eks_private_subnet_cidrs = try(data.terraform_remote_state.eks.outputs.private_subnet_cidrs, ["10.123.3.0/24", "10.123.4.0/24"])
 }
 
 resource "aws_security_group" "mongo" {
@@ -63,6 +64,16 @@ resource "aws_security_group_rule" "mongo_from_eks_nodes" {
   to_port                  = 27017
   protocol                 = "tcp"
   source_security_group_id = local.mongo_source_node_sg_id
+}
+
+resource "aws_security_group_rule" "mongo_from_eks_pods" {
+  type              = "ingress"
+  security_group_id = aws_security_group.mongo.id
+  description       = "Mongo from EKS pod CIDRs (VPC CNI uses subnet IPs)"
+  from_port         = 27017
+  to_port           = 27017
+  protocol          = "tcp"
+  cidr_blocks       = local.eks_private_subnet_cidrs
 }
 
 resource "aws_security_group_rule" "mongo_egress_all" {

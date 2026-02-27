@@ -24,6 +24,7 @@ jobs:
       s3_bucket: ${{ steps.outputs.outputs.s3_bucket }}
       cluster_name: ${{ steps.outputs.outputs.cluster_name }}
       lb_role_arn: ${{ steps.outputs.outputs.lb_role_arn }}
+      waf_acl_arn: ${{ steps.outputs.outputs.waf_acl_arn }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -79,6 +80,7 @@ jobs:
           cd ../eks
           CLUSTER_NAME=$(terraform output -raw cluster_name)
           LB_ROLE_ARN=$(terraform output -raw lb_controller_role_arn)
+          WAF_ACL_ARN=$(terraform output -raw waf_acl_arn)
           
           # Set Job Outputs
           echo "mongo_ip=$MONGO_IP" >> $GITHUB_OUTPUT
@@ -87,6 +89,7 @@ jobs:
           echo "s3_bucket=$S3_BUCKET" >> $GITHUB_OUTPUT
           echo "cluster_name=$CLUSTER_NAME" >> $GITHUB_OUTPUT
           echo "lb_role_arn=$LB_ROLE_ARN" >> $GITHUB_OUTPUT
+          echo "waf_acl_arn=$WAF_ACL_ARN" >> $GITHUB_OUTPUT
 
   configure-mongo:
     name: Configure MongoDB (Ansible)
@@ -185,5 +188,6 @@ jobs:
             --set mongodb.username=admin \
             --set mongodb.password="${{ secrets.MONGO_PASSWORD }}" \
             --set secrets.secretKey="${{ secrets.APP_SECRET_KEY }}" \
+            --set ingress.wafAclArn="${{ needs.deploy-infra.outputs.waf_acl_arn }}" \
             --set environment=dev \
             --wait

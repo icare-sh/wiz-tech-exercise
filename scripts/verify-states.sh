@@ -3,7 +3,7 @@ set -e
 
 AWS_PROFILE="${AWS_PROFILE:-wiz}"
 AWS_REGION="${AWS_REGION:-us-east-1}"
-S3_BUCKET="wiz-tech-exercise-terraform-state-180294187104"
+S3_BUCKET="wiz-tech-exercise-terraform-state-324037288864"
 
 echo "=============================================="
 echo "Terraform State Verification"
