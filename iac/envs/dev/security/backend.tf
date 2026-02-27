@@ -8,11 +8,11 @@ terraform {
   }
 
   backend "s3" {
-    bucket         = "wiz-tech-exercise-terraform-state-180294187104"
+    bucket         = "wiz-tech-exercise-terraform-state-324037288864"
     key            = "dev/security/terraform.tfstate"
     region         = "us-east-1"
-    encrypt        = true
-    dynamodb_table = "wiz-tech-exercise-terraform-locks"
+    encrypt      = true
+    use_lockfile = true
   }
 }
 

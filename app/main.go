@@ -4,7 +4,6 @@ import (
 	"net/http"
 	controller "github.com/jeffthorne/tasky/controllers"
 	"github.com/gin-gonic/gin"
-	"github.com/joho/godotenv"
 )
 
 func index(c *gin.Context) {
@@ -12,8 +11,6 @@ func index(c *gin.Context) {
 }
 
 func main() {
-	godotenv.Overload()
-	
 	router := gin.Default()
 	router.LoadHTMLGlob("assets/*.html")
 	router.Static("/assets", "./assets")

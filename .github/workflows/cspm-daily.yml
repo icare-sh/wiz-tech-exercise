@@ -1,0 +1,47 @@
+name: CSPM Daily Scan (Prowler)
+
+on:
+  schedule:
+    - cron: '0 8 * * *'
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: us-east-1
+
+jobs:
+  prowler-scan:
+    name: Prowler AWS Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_GITHUB_ACTIONS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Install Prowler
+        run: pip install prowler
+
+      - name: Run Prowler Scan
+        run: |
+          prowler aws \
+            --region ${{ env.AWS_REGION }} \
+            --output-formats html json csv \
+            --output-directory prowler-output \
+            --severity critical high medium
+        continue-on-error: true
+
+      - name: Upload Prowler Reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: prowler-report-${{ github.run_id }}
+          path: prowler-output/
+          retention-days: 30

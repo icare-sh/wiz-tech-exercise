@@ -11,7 +11,7 @@
 # -----------------------------------------------------------------------------
 image:
   # Default placeholder - MUST be overridden at deploy time
-  repository: ""  # e.g., 180294187104.dkr.ecr.us-east-1.amazonaws.com/wiz-securelabs-app
+  repository: ""  # e.g., 324037288864.dkr.ecr.us-east-1.amazonaws.com/wiz-securelabs-app
   pullPolicy: IfNotPresent
   # Default to 'latest' but should use git SHA in CI/CD
   tag: "latest"
@@ -42,6 +42,7 @@ ingress:
     alb.ingress.kubernetes.io/target-type: ip
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'
     alb.ingress.kubernetes.io/tags: Project=wiz-tech-exercise,Team=SecureLabs
+  wafAclArn: ""
   hosts:
     - host: ""
       paths:

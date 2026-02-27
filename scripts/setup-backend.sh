@@ -36,7 +36,7 @@ for MODULE_DIR in "envs/dev/eks" "envs/dev/ec2" "github-oidc"; do
     if [ -f "$MODULE_DIR/backend.tf.example" ]; then
         BACKEND_FILE="$MODULE_DIR/backend.tf"
         
-        sed "s/wiz-tech-exercise-terraform-state-180294187104/$BUCKET_NAME/g" \
+        sed "s/wiz-tech-exercise-terraform-state-324037288864/$BUCKET_NAME/g" \
             "$MODULE_DIR/backend.tf.example" > "$BACKEND_FILE"
         
         sed -i "s/wiz-tech-exercise-terraform-locks/$DYNAMODB_TABLE/g" "$BACKEND_FILE"

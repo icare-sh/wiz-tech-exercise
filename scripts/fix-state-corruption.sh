@@ -2,7 +2,7 @@
 set -e
 
 AWS_PROFILE="${AWS_PROFILE:-wiz}"
-S3_BUCKET="wiz-tech-exercise-terraform-state-180294187104"
+S3_BUCKET="wiz-tech-exercise-terraform-state-324037288864"
 DYNAMODB_TABLE="wiz-tech-exercise-terraform-locks"
 
 echo "=============================================="

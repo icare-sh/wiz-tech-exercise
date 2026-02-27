@@ -253,3 +253,12 @@ resource "aws_sns_topic_policy" "default" {
     ]
   })
 }
+
+# -----------------------------------------------------------------------------
+# 5. AWS Inspector v2 (Vulnerability Scanning for EC2)
+# -----------------------------------------------------------------------------
+
+resource "aws_inspector2_enabler" "ec2" {
+  account_ids    = [local.account_id]
+  resource_types = ["EC2"]
+}

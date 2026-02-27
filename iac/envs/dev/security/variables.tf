@@ -7,7 +7,7 @@ variable "aws_region" {
 variable "cloudtrail_bucket_name" {
   description = "Name of the S3 bucket for CloudTrail logs"
   type        = string
-  default     = "wiz-securelabs-cloudtrail-logs-180294187104"
+  default     = "wiz-securelabs-cloudtrail-logs-324037288864"
 }
 
 variable "email_address" {

@@ -7,7 +7,7 @@
 
 # Image - use local ECR
 image:
-  repository: 180294187104.dkr.ecr.us-east-1.amazonaws.com/wiz-securelabs-app
+  repository: 324037288864.dkr.ecr.us-east-1.amazonaws.com/wiz-securelabs-app
   tag: "latest"
 
 # MongoDB connection - host should be passed at deploy time
