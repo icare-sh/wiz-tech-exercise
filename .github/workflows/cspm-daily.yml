@@ -33,7 +33,7 @@ jobs:
         run: |
           prowler aws \
             --region ${{ env.AWS_REGION }} \
-            --output-formats html json csv \
+            --output-formats html csv json-ocsf \
             --output-directory prowler-output \
             --severity critical high medium
         continue-on-error: true
