@@ -13,5 +13,5 @@ variable "cloudtrail_bucket_name" {
 variable "email_address" {
   description = "Email address for security alerts"
   type        = string
-  default     = "admin@example.com" # Placeholder, user should update via tfvars
+  default     = "sabir.mba@protonmail.com"
 }
