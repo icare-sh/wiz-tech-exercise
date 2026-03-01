@@ -7,7 +7,7 @@ locals {
 }
 
 # -----------------------------------------------------------------------------
-# 1️⃣ CloudTrail (Audit Logging)
+# CloudTrail (Audit Logging)
 # -----------------------------------------------------------------------------
 
 # S3 Bucket for CloudTrail Logs
@@ -113,7 +113,7 @@ resource "aws_cloudtrail" "audit_trail" {
 }
 
 # -----------------------------------------------------------------------------
-# 2️⃣ AWS Config (Detective) - S3 & SSH Checks
+# AWS Config (Detective) - S3 & SSH Checks
 # -----------------------------------------------------------------------------
 
 resource "aws_config_configuration_recorder" "recorder" {
@@ -180,7 +180,7 @@ resource "aws_config_config_rule" "restricted_ssh" {
 }
 
 # -----------------------------------------------------------------------------
-# 2️⃣bis GuardDuty (Detective) - Threat Detection
+# is GuardDuty (Detective) - Threat Detection
 # -----------------------------------------------------------------------------
 
 resource "aws_guardduty_detector" "main" {
@@ -188,7 +188,7 @@ resource "aws_guardduty_detector" "main" {
 }
 
 # -----------------------------------------------------------------------------
-# 3️⃣ IAM Password Policy (Preventive)
+# IAM Password Policy (Preventive)
 # -----------------------------------------------------------------------------
 
 resource "aws_iam_account_password_policy" "strict" {
@@ -201,7 +201,7 @@ resource "aws_iam_account_password_policy" "strict" {
 }
 
 # -----------------------------------------------------------------------------
-# 4️⃣ Alerting (SNS + EventBridge)
+# Alerting (SNS + EventBridge)
 # -----------------------------------------------------------------------------
 
 # SNS Topic
@@ -255,7 +255,7 @@ resource "aws_sns_topic_policy" "default" {
 }
 
 # -----------------------------------------------------------------------------
-# 5. AWS Inspector v2 (Vulnerability Scanning for EC2)
+# AWS Inspector v2 (Vulnerability Scanning for EC2)
 # -----------------------------------------------------------------------------
 
 resource "aws_inspector2_enabler" "ec2" {
