@@ -45,7 +45,7 @@ jobs:
         run: |
           cd iac/envs/dev/eks
           terraform init
-          terraform state list || { echo "❌ Failed to read state!"; exit 1; }
+          terraform state list || { echo " Failed to read state!"; exit 1; }
 
       - name: Deploy EKS Cluster
         run: |
@@ -56,7 +56,7 @@ jobs:
         run: |
           cd iac/envs/dev/ec2
           terraform init
-          terraform state list || { echo "❌ Failed to read state!"; exit 1; }
+          terraform state list || { echo " Failed to read state!"; exit 1; }
 
       - name: Deploy EC2 & ECR
         run: |
