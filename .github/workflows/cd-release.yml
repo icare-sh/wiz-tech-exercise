@@ -65,6 +65,7 @@ jobs:
             -var="mongo_ssh_public_key=${{ secrets.MONGO_SSH_PUBLIC_KEY }}" 
         env:
           TF_VAR_mongo_ssh_public_key: ${{ secrets.MONGO_SSH_PUBLIC_KEY }}
+          TF_VAR_app_secret_key: ${{ secrets.APP_SECRET_KEY }}
 
       - name: Export Outputs
         id: outputs
